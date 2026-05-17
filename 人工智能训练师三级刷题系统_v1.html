@@ -394,7 +394,7 @@ function render(){
 
 function renderHeader(){
   const hasToken=!!getSyncToken();
-  const syncBtn=hasToken?`<span onclick="quickSync()" style="cursor:pointer;margin-left:12px;font-size:13px;opacity:.9">☁️ 同步</span>`:`<span onclick="showSyncModal()" style="cursor:pointer;margin-left:12px;font-size:13px;opacity:.7">☁️</span>`;
+  const syncBtn=hasToken?`<span onclick="quickSync(true)" style="cursor:pointer;margin-left:12px;font-size:13px;opacity:.9">☁️ 同步</span>`:`<span onclick="showSyncModal()" style="cursor:pointer;margin-left:12px;font-size:13px;opacity:.7">☁️</span>`;
   return`<div class="header"><h1>🤖 人工智能训练师三级${syncBtn}</h1><div class="sub">理论知识刷题系统 · 共${bank.j.length+bank.s.length+bank.m.length}题</div></div>`;
 }
 
@@ -1381,24 +1381,43 @@ window.doSyncPush=async function(){
 
 // Quick sync (upload only, silent)
 let _syncTimer=null;
-window.quickSync=async function(){
+window.quickSync=async function(showFeedback){
   const token=getSyncToken();
-  if(!token){showSyncModal();return;}
+  if(!token)return;
   const saveData=getSaveData();
   try{
     let gid=getGistId();
     if(!gid)gid=await findGist();
     if(!gid)await createGist(saveData);
     else await updateGist(gid,saveData);
-    // Show brief feedback
-    const el=document.querySelector('.header h1');
-    if(el){
-      const orig=el.innerHTML;
-      el.innerHTML=orig.replace('☁️ 同步','✅ 已同步');
-      setTimeout(()=>{el.innerHTML=orig;},1500);
+    if(showFeedback){
+      const el=document.querySelector('.header h1');
+      if(el){
+        const orig=el.innerHTML;
+        el.innerHTML=orig.replace('☁️ 同步','✅ 已同步');
+        setTimeout(()=>{el.innerHTML=orig;},1500);
+      }
     }
   }catch(e){
     console.error('Sync failed:',e);
+  }
+}
+
+// Auto-download on page load
+async function autoDownload(){
+  const token=getSyncToken();
+  if(!token)return;
+  try{
+    let gid=getGistId();
+    if(!gid)gid=await findGist();
+    if(!gid)return; // no cloud data yet
+    const remoteData=await readGist(gid);
+    if(remoteData&&remoteData.data){
+      applySaveData(remoteData);
+      persistAll();
+    }
+  }catch(e){
+    console.error('Auto-download failed:',e);
   }
 }
 
@@ -1406,7 +1425,7 @@ window.quickSync=async function(){
 function autoSync(){
   if(!getSyncToken())return;
   clearTimeout(_syncTimer);
-  _syncTimer=setTimeout(()=>quickSync(),3000);
+  _syncTimer=setTimeout(()=>quickSync(false),3000);
 }
 
 window.doSyncPull=async function(){
@@ -1432,8 +1451,11 @@ function persistAll(){
   LS.set('wrongSettings',state.wrongSettings);
 }
 
-// Init
-render();
+// Init: download cloud data first, then render
+(async()=>{
+  await autoDownload();
+  render();
+})();
 </script>
 <div style="text-align:center;padding:16px 12px 8px;font-size:11px;color:#9CA3AF;line-height:1.6">来源：github.com/xxiao1127 | 免费开源，答案仅供参考，禁止商用或倒卖，盗用必究</div>
 </body>
