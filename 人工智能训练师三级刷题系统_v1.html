@@ -884,7 +884,6 @@ window.answerJudge=function(aKey,val){
   saveBankProgress(aKey,isCorrect);
   if(!isCorrect)addWrong(q,val,type,idx);
   else removeWrong(aKey);
-  autoSync();
   render();
 }
 
@@ -897,7 +896,6 @@ window.answerSingle=function(aKey,val){
   saveBankProgress(aKey,isCorrect);
   if(!isCorrect)addWrong(q,val,type,idx);
   else removeWrong(aKey);
-  autoSync();
   render();
 }
 
@@ -921,7 +919,6 @@ window.confirmMulti=function(aKey){
   if(!isCorrect)addWrong(q,state.bankAnswered[aKey],type,idx);
   else removeWrong(aKey);
   delete window._multiTemp[aKey];
-  autoSync();
   render();
 }
 
@@ -1287,12 +1284,12 @@ async function findGist(){
   if(!token)return null;
   try{
     const res=await fetch('https://api.github.com/gists',{headers:await gistHeaders()});
-    if(!res.ok)return null;
+    if(!res.ok){console.error('findGist failed:',res.status,await res.text());return null;}
     const gists=await res.json();
     const found=gists.find(g=>g.description===GIST_DESC);
     if(found){setGistId(found.id);return found.id;}
     return null;
-  }catch{return null;}
+  }catch(e){console.error('findGist error:',e);return null;}
 }
 
 async function createGist(saveData){
@@ -1309,7 +1306,7 @@ async function createGist(saveData){
 
 async function readGist(gistId){
   const res=await fetch(`https://api.github.com/gists/${gistId}`,{headers:await gistHeaders()});
-  if(!res.ok)throw new Error('读取 Gist 失败');
+  if(!res.ok){const t=await res.text();throw new Error('读取失败 '+res.status+': '+t);}
   const g=await res.json();
   const file=g.files&&g.files['save.json'];
   if(!file)throw new Error('Gist 中无 save.json');
@@ -1322,7 +1319,7 @@ async function updateGist(gistId,saveData){
     headers:await gistHeaders(),
     body:JSON.stringify({files:{'save.json':{content:JSON.stringify(saveData)}}})
   });
-  if(!res.ok)throw new Error('更新 Gist 失败');
+  if(!res.ok){const t=await res.text();throw new Error('更新失败 '+res.status+': '+t);}
 }
 
 // Sync modal
@@ -1431,7 +1428,7 @@ window.quickSync=async function(showFeedback){
   }catch(e){
     console.error('Sync failed:',e);
     updateSyncBtn('❌ 失败','rgba(239,68,68,.3)');
-    if(showFeedback)showToast('❌ 同步失败',3000,true);
+    if(showFeedback)showToast('❌ '+e.message,5000,true);
     setTimeout(()=>updateSyncBtn('☁️ 同步','rgba(255,255,255,.2)'),5000);
   }
 }
@@ -1492,15 +1489,8 @@ function persistAll(){
   LS.set('wrongSettings',state.wrongSettings);
 }
 
-// Init: download cloud data first, then render
-(async()=>{
-  await autoDownload();
-  render();
-  // Auto-sync every 10 seconds
-  setInterval(()=>{
-    if(getSyncToken())quickSync(false);
-  },10000);
-})();
+// Init
+render();
 </script>
 <div style="text-align:center;padding:16px 12px 8px;font-size:11px;color:#9CA3AF;line-height:1.6">来源：github.com/xxiao1127 | 免费开源，答案仅供参考，禁止商用或倒卖，盗用必究</div>
 </body>
