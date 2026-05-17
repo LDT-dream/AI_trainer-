@@ -53,6 +53,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hira
 .sync-badge.off{background:#F3F4F6;color:#6B7280}
 .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center}
 .modal-box{background:#fff;border-radius:16px;padding:24px;max-width:400px;width:90%;box-shadow:0 8px 30px rgba(0,0,0,.15)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sync-spin{display:inline-block;animation:spin .8s linear infinite}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.sync-toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1F2937;color:#fff;padding:8px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:300;animation:fadeUp .3s ease;pointer-events:none;white-space:nowrap}
 .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 24px;border-radius:10px;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:.15s;gap:6px}
 .btn:active{transform:scale(.97)}
 .btn-pri{background:var(--pri);color:#fff}.btn-pri:hover{background:var(--pri2)}
@@ -394,7 +398,7 @@ function render(){
 
 function renderHeader(){
   const hasToken=!!getSyncToken();
-  const syncBtn=hasToken?`<span onclick="quickSync(true)" style="cursor:pointer;margin-left:12px;font-size:13px;opacity:.9">☁️ 同步</span>`:`<span onclick="showSyncModal()" style="cursor:pointer;margin-left:12px;font-size:13px;opacity:.7">☁️</span>`;
+  const syncBtn=hasToken?`<span onclick="quickSync(true)" style="cursor:pointer;margin-left:12px;font-size:13px;opacity:.9;padding:4px 8px;border-radius:8px;transition:.15s;-webkit-tap-highlight-color:transparent">☁️ 同步</span>`:`<span onclick="showSyncModal()" style="cursor:pointer;margin-left:12px;font-size:13px;opacity:.7;padding:4px 8px;-webkit-tap-highlight-color:transparent">☁️</span>`;
   return`<div class="header"><h1>🤖 人工智能训练师三级${syncBtn}</h1><div class="sub">理论知识刷题系统 · 共${bank.j.length+bank.s.length+bank.m.length}题</div></div>`;
 }
 
@@ -1379,27 +1383,32 @@ window.doSyncPush=async function(){
   }catch(e){alert('❌ 上传失败：'+e.message);}
 }
 
-// Quick sync (upload only, silent)
+// Quick sync (upload only)
 let _syncTimer=null;
+function showToast(msg,duration){
+  const existing=document.querySelector('.sync-toast');
+  if(existing)existing.remove();
+  const t=document.createElement('div');
+  t.className='sync-toast';
+  t.innerHTML=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),duration||2000);
+}
+
 window.quickSync=async function(showFeedback){
   const token=getSyncToken();
-  if(!token)return;
+  if(!token){showSyncModal();return;}
+  if(showFeedback)showToast('⏳ 同步中...',30000);
   const saveData=getSaveData();
   try{
     let gid=getGistId();
     if(!gid)gid=await findGist();
     if(!gid)await createGist(saveData);
     else await updateGist(gid,saveData);
-    if(showFeedback){
-      const el=document.querySelector('.header h1');
-      if(el){
-        const orig=el.innerHTML;
-        el.innerHTML=orig.replace('☁️ 同步','✅ 已同步');
-        setTimeout(()=>{el.innerHTML=orig;},1500);
-      }
-    }
+    if(showFeedback)showToast('✅ 已同步',2000);
   }catch(e){
     console.error('Sync failed:',e);
+    if(showFeedback)showToast('❌ 同步失败',3000);
   }
 }
 
