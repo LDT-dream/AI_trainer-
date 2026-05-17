@@ -55,8 +55,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hira
 .modal-box{background:#fff;border-radius:16px;padding:24px;max-width:400px;width:90%;box-shadow:0 8px 30px rgba(0,0,0,.15)}
 @keyframes spin{to{transform:rotate(360deg)}}
 .sync-spin{display:inline-block;animation:spin .8s linear infinite}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.sync-toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1F2937;color:#fff;padding:8px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:300;animation:fadeUp .3s ease;pointer-events:none;white-space:nowrap}
+@keyframes slideIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(40px)}}
+.sync-toast{position:fixed;top:80px;right:16px;background:#10B981;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:300;animation:slideIn .3s ease;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(16,185,129,.4)}
+.sync-toast.err{background:#EF4444;box-shadow:0 4px 16px rgba(239,68,68,.4)}
 .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 24px;border-radius:10px;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:.15s;gap:6px}
 .btn:active{transform:scale(.97)}
 .btn-pri{background:var(--pri);color:#fff}.btn-pri:hover{background:var(--pri2)}
@@ -1394,14 +1396,17 @@ function updateSyncBtn(text,color){
   btn.style.background=color||'rgba(255,255,255,.2)';
 }
 
-function showToast(msg,duration){
+function showToast(msg,duration,isErr){
   const existing=document.querySelector('.sync-toast');
   if(existing)existing.remove();
   const t=document.createElement('div');
-  t.className='sync-toast';
+  t.className='sync-toast'+(isErr?' err':'');
   t.innerHTML=msg;
   document.body.appendChild(t);
-  setTimeout(()=>t.remove(),duration||2000);
+  setTimeout(()=>{
+    t.style.animation='slideOut .3s ease forwards';
+    setTimeout(()=>t.remove(),300);
+  },duration||2000);
 }
 
 window.quickSync=async function(showFeedback){
@@ -1424,7 +1429,7 @@ window.quickSync=async function(showFeedback){
   }catch(e){
     console.error('Sync failed:',e);
     updateSyncBtn('❌ 失败','rgba(239,68,68,.3)');
-    if(showFeedback)showToast('❌ 同步失败',3000);
+    if(showFeedback)showToast('❌ 同步失败',3000,true);
     setTimeout(()=>updateSyncBtn('☁️ 同步','rgba(255,255,255,.2)'),5000);
   }
 }
