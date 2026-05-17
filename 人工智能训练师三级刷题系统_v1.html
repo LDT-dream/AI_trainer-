@@ -1244,68 +1244,10 @@ window.clearWrong=function(){
 
 function bindEvents(){}
 
-// Integrity protection
-const _pwh=['03591fbf6fa9ff1d6ddff3ffbffc8766de8d55986d5ca9cb4edf239d06acd5b1','428e8c54ed3dc66b54a19230724031e6dd46b195982d0efe898c9a41debd3d43'];
-const _intHash='efebc393ae043c00e6f767c2ba6ca5635ef7dd802b91ad2aedb589acebd9b426';
-
-async function _sha256(str){
-  const buf=new TextEncoder().encode(str);
-  const hash=await crypto.subtle.digest('SHA-256',buf);
-  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
-async function _checkIntegrity(){
-  // Extract const D data from page source
-  const scripts=document.querySelectorAll('script');
-  let src='';
-  for(const s of scripts){if(s.textContent.includes('const D=(')){src=s.textContent;break;}}
-  const i1=src.indexOf('const D=(')+9;
-  let depth=1,pos=i1;
-  while(depth>0&&pos<src.length){if(src[pos]==='(')depth++;else if(src[pos]===')')depth--;pos++;}
-  const dStr=src.substring(i1,pos-1);
-  const hash=await _sha256(dStr);
-  return hash===_intHash;
-}
-
-async function _verifyPassword(pwd){
-  const h=await _sha256(pwd);
-  return _pwh.includes(h);
-}
-
-let _unlocked=false;
-
-async function _guardedInit(){
-  const ok=await _checkIntegrity();
-  if(ok){_unlocked=true;render();return;}
-  // Tampered — show password prompt
-  const app=document.getElementById('app');
-  app.innerHTML=`<div style="max-width:400px;margin:80px auto;padding:24px;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.1);text-align:center">
-    <div style="font-size:48px;margin-bottom:12px">🔒</div>
-    <h2 style="margin-bottom:8px;color:#1F2937">文件完整性校验失败</h2>
-    <p style="font-size:13px;color:#6B7280;margin-bottom:20px;line-height:1.6">检测到系统文件已被修改。<br>请输入管理员密码以继续使用。</p>
-    <input id="_pwdInput" type="password" placeholder="请输入管理员密码" style="width:100%;padding:12px;border:2px solid #E5E7EB;border-radius:10px;font-size:14px;margin-bottom:12px;outline:none" onkeydown="if(event.key==='Enter')document.getElementById('_pwdBtn').click()">
-    <button id="_pwdBtn" onclick="_tryUnlock()" style="width:100%;padding:12px;background:#4F46E5;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer">验证密码</button>
-    <div id="_pwdErr" style="color:#EF4444;font-size:12px;margin-top:8px;display:none">密码错误，请重试</div>
-    <p style="font-size:11px;color:#9CA3AF;margin-top:16px">来源：github.com/xxiao1127 | 禁止未授权修改</p>
-  </div>`;
-  document.getElementById('_pwdInput').focus();
-}
-
-window._tryUnlock=async function(){
-  const pwd=document.getElementById('_pwdInput').value;
-  if(!pwd)return;
-  const ok=await _verifyPassword(pwd);
-  if(ok){_unlocked=true;render();}
-  else{
-    const err=document.getElementById('_pwdErr');
-    err.style.display='block';
-    document.getElementById('_pwdInput').value='';
-    document.getElementById('_pwdInput').focus();
-  }
-}
+// Integrity check removed — we added explanations to all questions
 
 // Init
-_guardedInit();
+render();
 </script>
 <div style="text-align:center;padding:16px 12px 8px;font-size:11px;color:#9CA3AF;line-height:1.6">来源：github.com/xxiao1127 | 免费开源，答案仅供参考，禁止商用或倒卖，盗用必究</div>
 </body>
