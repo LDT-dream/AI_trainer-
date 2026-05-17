@@ -393,7 +393,9 @@ function render(){
 }
 
 function renderHeader(){
-  return`<div class="header"><h1>🤖 人工智能训练师三级</h1><div class="sub">理论知识刷题系统 · 共${bank.j.length+bank.s.length+bank.m.length}题</div></div>`;
+  const hasToken=!!getSyncToken();
+  const syncBtn=hasToken?`<span onclick="quickSync()" style="cursor:pointer;margin-left:12px;font-size:13px;opacity:.9">☁️ 同步</span>`:`<span onclick="showSyncModal()" style="cursor:pointer;margin-left:12px;font-size:13px;opacity:.7">☁️</span>`;
+  return`<div class="header"><h1>🤖 人工智能训练师三级${syncBtn}</h1><div class="sub">理论知识刷题系统 · 共${bank.j.length+bank.s.length+bank.m.length}题</div></div>`;
 }
 
 function renderTabs(){
@@ -874,6 +876,7 @@ window.answerJudge=function(aKey,val){
   saveBankProgress(aKey,isCorrect);
   if(!isCorrect)addWrong(q,val,type,idx);
   else removeWrong(aKey);
+  autoSync();
   render();
 }
 
@@ -886,6 +889,7 @@ window.answerSingle=function(aKey,val){
   saveBankProgress(aKey,isCorrect);
   if(!isCorrect)addWrong(q,val,type,idx);
   else removeWrong(aKey);
+  autoSync();
   render();
 }
 
@@ -909,6 +913,7 @@ window.confirmMulti=function(aKey){
   if(!isCorrect)addWrong(q,state.bankAnswered[aKey],type,idx);
   else removeWrong(aKey);
   delete window._multiTemp[aKey];
+  autoSync();
   render();
 }
 
@@ -1372,6 +1377,36 @@ window.doSyncPush=async function(){
     alert('✅ 上传成功！在其他设备点击"下载"即可同步。');
     closeSyncModal();
   }catch(e){alert('❌ 上传失败：'+e.message);}
+}
+
+// Quick sync (upload only, silent)
+let _syncTimer=null;
+window.quickSync=async function(){
+  const token=getSyncToken();
+  if(!token){showSyncModal();return;}
+  const saveData=getSaveData();
+  try{
+    let gid=getGistId();
+    if(!gid)gid=await findGist();
+    if(!gid)await createGist(saveData);
+    else await updateGist(gid,saveData);
+    // Show brief feedback
+    const el=document.querySelector('.header h1');
+    if(el){
+      const orig=el.innerHTML;
+      el.innerHTML=orig.replace('☁️ 同步','✅ 已同步');
+      setTimeout(()=>{el.innerHTML=orig;},1500);
+    }
+  }catch(e){
+    console.error('Sync failed:',e);
+  }
+}
+
+// Debounced auto-sync (trigger 3s after last answer)
+function autoSync(){
+  if(!getSyncToken())return;
+  clearTimeout(_syncTimer);
+  _syncTimer=setTimeout(()=>quickSync(),3000);
 }
 
 window.doSyncPull=async function(){
