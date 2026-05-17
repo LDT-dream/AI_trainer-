@@ -398,7 +398,7 @@ function render(){
 
 function renderHeader(){
   const hasToken=!!getSyncToken();
-  const syncBtn=hasToken?`<span onclick="quickSync(true)" style="cursor:pointer;margin-left:12px;font-size:13px;opacity:.9;padding:4px 8px;border-radius:8px;transition:.15s;-webkit-tap-highlight-color:transparent">☁️ 同步</span>`:`<span onclick="showSyncModal()" style="cursor:pointer;margin-left:12px;font-size:13px;opacity:.7;padding:4px 8px;-webkit-tap-highlight-color:transparent">☁️</span>`;
+  const syncBtn=hasToken?`<span id="syncBtn" onclick="quickSync(true)" style="cursor:pointer;margin-left:12px;font-size:13px;padding:4px 12px;border-radius:20px;background:rgba(255,255,255,.2);transition:.3s;-webkit-tap-highlight-color:transparent">☁️ 同步</span>`:`<span onclick="showSyncModal()" style="cursor:pointer;margin-left:12px;font-size:13px;opacity:.7;padding:4px 8px;-webkit-tap-highlight-color:transparent">☁️</span>`;
   return`<div class="header"><h1>🤖 人工智能训练师三级${syncBtn}</h1><div class="sub">理论知识刷题系统 · 共${bank.j.length+bank.s.length+bank.m.length}题</div></div>`;
 }
 
@@ -1385,6 +1385,15 @@ window.doSyncPush=async function(){
 
 // Quick sync (upload only)
 let _syncTimer=null;
+let _lastSyncTime=0;
+
+function updateSyncBtn(text,color){
+  const btn=document.getElementById('syncBtn');
+  if(!btn)return;
+  btn.textContent=text;
+  btn.style.background=color||'rgba(255,255,255,.2)';
+}
+
 function showToast(msg,duration){
   const existing=document.querySelector('.sync-toast');
   if(existing)existing.remove();
@@ -1398,17 +1407,25 @@ function showToast(msg,duration){
 window.quickSync=async function(showFeedback){
   const token=getSyncToken();
   if(!token){showSyncModal();return;}
-  if(showFeedback)showToast('⏳ 同步中...',30000);
+  // Update button state
+  updateSyncBtn('⏳ 同步中...','rgba(255,255,255,.4)');
   const saveData=getSaveData();
   try{
     let gid=getGistId();
     if(!gid)gid=await findGist();
     if(!gid)await createGist(saveData);
     else await updateGist(gid,saveData);
-    if(showFeedback)showToast('✅ 已同步',2000);
+    _lastSyncTime=Date.now();
+    const timeStr=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    updateSyncBtn('✅ '+timeStr,'rgba(82,196,26,.3)');
+    if(showFeedback)showToast('✅ 已同步 '+timeStr,2000);
+    // Reset button after 5 seconds
+    setTimeout(()=>updateSyncBtn('☁️ 同步','rgba(255,255,255,.2)'),5000);
   }catch(e){
     console.error('Sync failed:',e);
+    updateSyncBtn('❌ 失败','rgba(239,68,68,.3)');
     if(showFeedback)showToast('❌ 同步失败',3000);
+    setTimeout(()=>updateSyncBtn('☁️ 同步','rgba(255,255,255,.2)'),5000);
   }
 }
 
