@@ -401,9 +401,17 @@ function render(){
 function renderHeader(){
   const hasToken=!!getSyncToken();
   const answeredCount=Object.keys(state.bankAnswered||{}).length;
-  const syncBtn=hasToken?`<span id="syncBtn" onclick="quickSync(true)" style="cursor:pointer;margin-left:12px;font-size:13px;padding:4px 12px;border-radius:20px;background:rgba(255,255,255,.2);transition:.3s;-webkit-tap-highlight-color:transparent">☁️ 同步</span>`:`<span onclick="showSyncModal()" style="cursor:pointer;margin-left:12px;font-size:13px;opacity:.7;padding:4px 8px;-webkit-tap-highlight-color:transparent">☁️</span>`;
-  const syncStatus=hasToken?`<div style="font-size:11px;opacity:.7;margin-top:2px">已答 ${answeredCount} 题 · 云端同步已开启</div>`:`<div style="font-size:11px;opacity:.5;margin-top:2px">已答 ${answeredCount} 题</div>`;
-  return`<div class="header"><h1>🤖 人工智能训练师三级${syncBtn}</h1><div class="sub">理论知识刷题系统 · 共${bank.j.length+bank.s.length+bank.m.length}题</div>${syncStatus}</div>`;
+  let syncBtns='';
+  if(hasToken){
+    syncBtns=`<span style="display:flex;gap:6px;margin-left:12px">`
+      +`<span id="syncUpBtn" onclick="quickSync(true)" style="cursor:pointer;font-size:12px;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,.2);-webkit-tap-highlight-color:transparent">⬆️ 上传</span>`
+      +`<span id="syncDownBtn" onclick="quickDownload(true)" style="cursor:pointer;font-size:12px;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,.2);-webkit-tap-highlight-color:transparent">⬇️ 下载</span>`
+      +`</span>`;
+  }else{
+    syncBtns=`<span onclick="showSyncModal()" style="cursor:pointer;margin-left:12px;font-size:12px;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,.15);-webkit-tap-highlight-color:transparent">☁️ 同步</span>`;
+  }
+  const syncStatus=hasToken?`<div style="font-size:11px;opacity:.7;margin-top:2px">已答 ${answeredCount} 题</div>`:`<div style="font-size:11px;opacity:.5;margin-top:2px">已答 ${answeredCount} 题</div>`;
+  return`<div class="header"><h1 style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap">🤖 人工智能训练师三级${syncBtns}</h1><div class="sub">理论知识刷题系统 · 共${bank.j.length+bank.s.length+bank.m.length}题</div>${syncStatus}</div>`;
 }
 
 function renderTabs(){
@@ -1384,12 +1392,41 @@ window.doSyncPush=async function(){
   }catch(e){alert('❌ 上传失败：'+e.message);}
 }
 
+// Quick download
+window.quickDownload=async function(showFeedback){
+  const token=getSyncToken();
+  if(!token){showSyncModal();return;}
+  if(showFeedback)showToast('⏳ 下载中...',30000);
+  try{
+    let gid=getGistId();
+    if(!gid)gid=await findGist();
+    if(!gid){showToast('☁️ 云端无数据，请先上传',3000);return;}
+    const remoteData=await readGist(gid);
+    if(remoteData&&remoteData.data){
+      applySaveData(remoteData);
+      persistAll();
+      const count=Object.keys(state.bankAnswered||{}).length;
+      showToast('✅ 已下载 '+count+' 条记录',2000);
+      setTimeout(()=>render(),500);
+    }
+  }catch(e){
+    console.error('Download failed:',e);
+    showToast('❌ '+e.message,5000,true);
+  }
+}
+
 // Quick sync (upload only)
 let _syncTimer=null;
 let _lastSyncTime=0;
 
 function updateSyncBtn(text,color){
-  const btn=document.getElementById('syncBtn');
+  const btn=document.getElementById('syncUpBtn');
+  if(!btn)return;
+  btn.textContent=text;
+  btn.style.background=color||'rgba(255,255,255,.2)';
+}
+function updateDownBtn(text,color){
+  const btn=document.getElementById('syncDownBtn');
   if(!btn)return;
   btn.textContent=text;
   btn.style.background=color||'rgba(255,255,255,.2)';
@@ -1433,38 +1470,7 @@ window.quickSync=async function(showFeedback){
   }
 }
 
-// Auto-download on page load
-async function autoDownload(){
-  const token=getSyncToken();
-  if(!token)return;
-  try{
-    let gid=getGistId();
-    if(!gid)gid=await findGist();
-    if(!gid){showToast('☁️ 首次使用，点击同步上传进度',3000);return;}
-    const remoteData=await readGist(gid);
-    if(remoteData&&remoteData.data){
-      const remoteCount=Object.keys(remoteData.data.bankAnswered||{}).length;
-      const localCount=Object.keys(state.bankAnswered||{}).length;
-      if(remoteCount>localCount){
-        applySaveData(remoteData);
-        persistAll();
-        showToast('✅ 已从云端同步 '+remoteCount+' 条记录',3000);
-      }else if(remoteCount>0){
-        showToast('☁️ 云端已有 '+remoteCount+' 条记录',2000);
-      }
-    }
-  }catch(e){
-    console.error('Auto-download failed:',e);
-    showToast('❌ 云端同步失败',3000,true);
-  }
-}
-
-// Debounced auto-sync (trigger 3s after last answer)
-function autoSync(){
-  if(!getSyncToken())return;
-  clearTimeout(_syncTimer);
-  _syncTimer=setTimeout(()=>quickSync(false),3000);
-}
+// Auto-download on page load — REMOVEd (manual only)
 
 window.doSyncPull=async function(){
   try{
