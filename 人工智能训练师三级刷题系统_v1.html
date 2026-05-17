@@ -44,6 +44,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hira
 .result-box{padding:12px 14px;border-radius:10px;margin-top:10px;font-size:13px;line-height:1.6}
 .result-box.correct{background:#ECFDF5;color:#065F46;border-left:4px solid var(--green)}
 .result-box.wrong{background:#FEF2F2;color:#991B1B;border-left:4px solid var(--red)}
+.explain-box{padding:12px 14px;border-radius:10px;margin-top:8px;font-size:13px;line-height:1.7;background:#F0F5FF;color:#1e3a5f;border-left:4px solid #3B82F6}
+.explain-box .explain-title{font-weight:700;margin-bottom:4px;color:#1e40af}
 .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 24px;border-radius:10px;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:.15s;gap:6px}
 .btn:active{transform:scale(.97)}
 .btn-pri{background:var(--pri);color:#fff}.btn-pri:hover{background:var(--pri2)}
@@ -139,12 +141,12 @@ const D=({"bj":[["道德评价的关键是看其行为是否符合社会道德�
 // Parse data into structured format
 function parseData(){
   const bank={j:[],s:[],m:[]},exam={j:[],s:[],m:[]};
-  D.bj.forEach((q,i)=>bank.j.push({id:i+1,q:q[0],a:q[1],type:'j'}));
-  D.bs.forEach((q,i)=>bank.s.push({id:i+1,q:q[0],opts:q[1],a:q[2],type:'s'}));
-  D.bm.forEach((q,i)=>bank.m.push({id:i+1,q:q[0],opts:q[1],a:q[2],type:'m'}));
-  D.ej.forEach((q,i)=>exam.j.push({id:i+1,q:q[0],a:q[1],type:'j'}));
-  D.es.forEach((q,i)=>exam.s.push({id:i+1,q:q[0],opts:q[1],a:q[2],type:'s'}));
-  D.em.forEach((q,i)=>exam.m.push({id:i+1,q:q[0],opts:q[1],a:q[2],type:'m'}));
+  D.bj.forEach((q,i)=>bank.j.push({id:i+1,q:q[0],a:q[1],type:'j',explain:q[2]||''}));
+  D.bs.forEach((q,i)=>bank.s.push({id:i+1,q:q[0],opts:q[1],a:q[2],type:'s',explain:q[3]||''}));
+  D.bm.forEach((q,i)=>bank.m.push({id:i+1,q:q[0],opts:q[1],a:q[2],type:'m',explain:q[3]||''}));
+  D.ej.forEach((q,i)=>exam.j.push({id:i+1,q:q[0],a:q[1],type:'j',explain:q[2]||''}));
+  D.es.forEach((q,i)=>exam.s.push({id:i+1,q:q[0],opts:q[1],a:q[2],type:'s',explain:q[3]||''}));
+  D.em.forEach((q,i)=>exam.m.push({id:i+1,q:q[0],opts:q[1],a:q[2],type:'m',explain:q[3]||''}));
   return{bank,exam};
 }
 
@@ -156,6 +158,11 @@ const LS={
   set(k,v){try{localStorage.setItem('ai3_'+k,JSON.stringify(v))}catch{}},
 };
 
+function renderExplain(q){
+  const exp=q&&q.explain;
+  if(!exp)return'';
+  return`<div class="explain-box"><div class="explain-title">📖 解析</div><div>${exp}</div></div>`;
+}
 const DEFAULT_WRONG_SETTINGS={correctToRemove:2};
 
 function normalizeWrongSettings(raw){
@@ -323,6 +330,7 @@ function addWrong(q,userAns,qType,qIdx){
       q:q.q,
       opts:q.opts,
       a:q.a,
+      explain:q.explain||'',
       userAns,
       count:1,
       correctStreak:0,
@@ -478,6 +486,7 @@ function renderQuestion(q,idx,typeKey,answers){
     const isCorrect=checkAnswer(q,userAns);
     const correctText=q.type==='j'?(q.a?'√ 正确':'× 错误'):(Array.isArray(q.a)?q.a.join(', '):q.a);
     h+=`<div class="result-box ${isCorrect?'correct':'wrong'}">${isCorrect?'✅ 回答正确！':'❌ 回答错误！正确答案：'+correctText}</div>`;
+    h+=renderExplain(q);
   }
   h+=`</div>`;
   return h;
@@ -785,8 +794,10 @@ function renderWrongPractice(){
     const correctText=w.type==='j'?(w.a?'√ 正确':'× 错误'):(Array.isArray(w.a)?w.a.join(', '):w.a);
     if(isCorrect){
       h+=`<div class="result-box correct">✅ 回答正确！${getWrongRemoveTarget()===0?`当前为手动移除模式，题目仍保留在错题本。`:`已累计答对${Math.max(0,Number(w.correctStreak)||0)}/${getWrongRemoveTarget()}次，达到阈值后才会自动移出错题本。`}</div>`;
+      h+=renderExplain(w);
     }else{
       h+=`<div class="result-box wrong">❌ 回答错误！正确答案：${correctText}</div>`;
+      h+=renderExplain(w);
     }
   }
   h+=`<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn btn-out btn-sm" onclick="removeWrongManual('${aKey}')">手动移出</button></div>`;
@@ -1047,6 +1058,7 @@ function renderExamReview(){
   if(ua===undefined){h+=`<div class="result-box wrong">⚠️ 未作答。正确答案：${correctText}</div>`;}
   else if(isCorrect){h+=`<div class="result-box correct">✅ 回答正确</div>`;}
   else{h+=`<div class="result-box wrong">❌ 回答错误。正确答案：${correctText}</div>`;}
+  h+=renderExplain(q);
   h+=`</div>`;
 
   // Navigation
