@@ -1464,6 +1464,10 @@ function persistAll(){
 (async()=>{
   await autoDownload();
   render();
+  // Auto-sync every 10 seconds
+  setInterval(()=>{
+    if(getSyncToken())quickSync(false);
+  },10000);
 })();
 </script>
 <div style="text-align:center;padding:16px 12px 8px;font-size:11px;color:#9CA3AF;line-height:1.6">来源：github.com/xxiao1127 | 免费开源，答案仅供参考，禁止商用或倒卖，盗用必究</div>
