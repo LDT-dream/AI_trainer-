@@ -46,6 +46,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hira
 .result-box.wrong{background:#FEF2F2;color:#991B1B;border-left:4px solid var(--red)}
 .explain-box{padding:12px 14px;border-radius:10px;margin-top:8px;font-size:13px;line-height:1.7;background:#F0F5FF;color:#1e3a5f;border-left:4px solid #3B82F6}
 .explain-box .explain-title{font-weight:700;margin-bottom:4px;color:#1e40af}
+.sync-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;transition:.15s}
+.sync-badge.ok{background:#ECFDF5;color:#065F46}
+.sync-badge.warn{background:#FFFBEB;color:#92400E}
+.sync-badge.err{background:#FEF2F2;color:#991B1B}
+.sync-badge.off{background:#F3F4F6;color:#6B7280}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center}
+.modal-box{background:#fff;border-radius:16px;padding:24px;max-width:400px;width:90%;box-shadow:0 8px 30px rgba(0,0,0,.15)}
 .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 24px;border-radius:10px;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:.15s;gap:6px}
 .btn:active{transform:scale(.97)}
 .btn-pri{background:var(--pri);color:#fff}.btn-pri:hover{background:var(--pri2)}
@@ -707,7 +714,8 @@ function renderWrong(){
     {v:5,label:'5次'}
   ].map(opt=>`<button class="filter-btn${state.wrongSettings.correctToRemove===opt.v?' active':''}" onclick="setWrongRemoveTarget(${opt.v})">${opt.label}</button>`).join('')}</div>`;
   h+=`<div style="font-size:12px;color:var(--sub);line-height:1.7">当前规则：<b style="color:var(--pri)">${getWrongRetentionLabel()}</b><br>自动存档键：<code>ai3_bankAnswered</code>、<code>ai3_bankStats</code>、<code>ai3_wrong</code>、<code>ai3_examResults</code>、<code>ai3_wrongSettings</code></div>`;
-  h+=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-out btn-sm" onclick="exportSave()">导出存档</button><button class="btn btn-out btn-sm" onclick="triggerImportSave()">导入存档</button><input id="saveImportInput" class="hidden" type="file" accept="application/json,.json" onchange="importSave(event)"></div>`;
+  const hasToken=!!getSyncToken();
+  h+=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-out btn-sm" onclick="exportSave()">导出存档</button><button class="btn btn-out btn-sm" onclick="triggerImportSave()">导入存档</button><button class="btn btn-out btn-sm" onclick="showSyncModal()" style="${hasToken?'color:var(--green);border-color:var(--green)':''}">☁️ ${hasToken?'同步':'云端同步'}</button><input id="saveImportInput" class="hidden" type="file" accept="application/json,.json" onchange="importSave(event)"></div>`;
   h+=`</div>`;
 
   const filteredList=getFilteredWrongList();
@@ -1245,6 +1253,149 @@ window.clearWrong=function(){
 function bindEvents(){}
 
 // Integrity check removed — we added explanations to all questions
+
+// ========== Cloud Sync via GitHub Gist ==========
+const GIST_DESC='ai3-quiz-save';
+const SYNC_TOKEN_KEY='ai3_gh_token';
+const GIST_ID_KEY='ai3_gist_id';
+
+function getSyncToken(){return LS.get(SYNC_TOKEN_KEY,'')}
+function setSyncToken(t){LS.set(SYNC_TOKEN_KEY,t)}
+function getGistId(){return LS.get(GIST_ID_KEY,'')}
+function setGistId(id){LS.set(GIST_ID_KEY,id)}
+
+async function gistHeaders(){
+  const token=getSyncToken();
+  return{'Accept':'application/vnd.github+json','Authorization':`Bearer ${token}`,'Content-Type':'application/json'};
+}
+
+async function findGist(){
+  const token=getSyncToken();
+  if(!token)return null;
+  try{
+    const res=await fetch('https://api.github.com/gists',{headers:await gistHeaders()});
+    if(!res.ok)return null;
+    const gists=await res.json();
+    const found=gists.find(g=>g.description===GIST_DESC);
+    if(found){setGistId(found.id);return found.id;}
+    return null;
+  }catch{return null;}
+}
+
+async function createGist(saveData){
+  const res=await fetch('https://api.github.com/gists',{
+    method:'POST',
+    headers:await gistHeaders(),
+    body:JSON.stringify({description:GIST_DESC,public:false,files:{'save.json':{content:JSON.stringify(saveData)}}})
+  });
+  if(!res.ok)throw new Error('创建 Gist 失败');
+  const g=await res.json();
+  setGistId(g.id);
+  return g.id;
+}
+
+async function readGist(gistId){
+  const res=await fetch(`https://api.github.com/gists/${gistId}`,{headers:await gistHeaders()});
+  if(!res.ok)throw new Error('读取 Gist 失败');
+  const g=await res.json();
+  const file=g.files&&g.files['save.json'];
+  if(!file)throw new Error('Gist 中无 save.json');
+  return JSON.parse(file.content);
+}
+
+async function updateGist(gistId,saveData){
+  const res=await fetch(`https://api.github.com/gists/${gistId}`,{
+    method:'PATCH',
+    headers:await gistHeaders(),
+    body:JSON.stringify({files:{'save.json':{content:JSON.stringify(saveData)}}})
+  });
+  if(!res.ok)throw new Error('更新 Gist 失败');
+}
+
+// Sync modal
+window.showSyncModal=function(){
+  const token=getSyncToken();
+  const gistId=getGistId();
+  let h=`<div class="modal-overlay" onclick="if(event.target===this)closeSyncModal()">`;
+  h+=`<div class="modal-box">`;
+  h+=`<div style="font-size:16px;font-weight:700;margin-bottom:16px">☁️ 云端同步</div>`;
+
+  if(!token){
+    h+=`<p style="font-size:13px;color:var(--sub);margin-bottom:12px;line-height:1.6">首次使用需配置 GitHub Token：<br>1. 打开 <a href="https://github.com/settings/tokens?type=beta" target="_blank">GitHub Token</a><br>2. 创建 Token，勾选 <b>gist</b> 权限<br>3. 粘贴到下方</p>`;
+    h+=`<input id="syncTokenInput" type="password" placeholder="ghp_xxxx 或 github_pat_xxxx" style="width:100%;padding:10px;border:2px solid var(--border);border-radius:8px;font-size:13px;margin-bottom:12px;outline:none">`;
+    h+=`<button class="btn btn-pri" style="width:100%" onclick="saveSyncToken()">保存并继续</button>`;
+  }else{
+    h+=`<div style="font-size:12px;color:var(--sub);margin-bottom:12px">Token: ${token.slice(0,8)}...${token.slice(-4)} · Gist: ${gistId||'未创建'}</div>`;
+    h+=`<div style="display:flex;flex-direction:column;gap:8px">`;
+    h+=`<button class="btn btn-pri" onclick="doSyncPush()" style="width:100%">⬆️ 上传进度（覆盖云端）</button>`;
+    h+=`<button class="btn btn-out" onclick="doSyncPull()" style="width:100%">⬇️ 下载进度（覆盖本地）</button>`;
+    h+=`</div>`;
+    h+=`<div style="margin-top:12px;font-size:11px;color:var(--sub)">💡 电脑上传后，手机点下载即可同步。建议先上传再换设备下载。</div>`;
+    h+=`<button class="btn btn-out btn-sm" style="margin-top:12px;color:var(--red);border-color:var(--red)" onclick="clearSyncToken()">清除 Token</button>`;
+  }
+  h+=`<button class="btn btn-out btn-sm" style="margin-top:12px;width:100%" onclick="closeSyncModal()">关闭</button>`;
+  h+=`</div></div>`;
+  document.getElementById('app').insertAdjacentHTML('beforeend',h);
+}
+
+window.closeSyncModal=function(){
+  const m=document.querySelector('.modal-overlay');
+  if(m)m.remove();
+}
+
+window.saveSyncToken=async function(){
+  const input=document.getElementById('syncTokenInput');
+  const token=input?input.value.trim():'';
+  if(!token){alert('请输入 Token');return;}
+  setSyncToken(token);
+  // Try to find existing gist
+  try{await findGist();}catch{}
+  closeSyncModal();
+  render();
+}
+
+window.clearSyncToken=function(){
+  if(!confirm('确认清除 Token？清除后无法同步。'))return;
+  setSyncToken('');
+  setGistId('');
+  closeSyncModal();
+  render();
+}
+
+window.doSyncPush=async function(){
+  const saveData=getSaveData();
+  try{
+    let gid=getGistId();
+    if(!gid)gid=await findGist();
+    if(!gid)await createGist(saveData);
+    else await updateGist(gid,saveData);
+    alert('✅ 上传成功！在其他设备点击"下载"即可同步。');
+    closeSyncModal();
+  }catch(e){alert('❌ 上传失败：'+e.message);}
+}
+
+window.doSyncPull=async function(){
+  try{
+    let gid=getGistId();
+    if(!gid)gid=await findGist();
+    if(!gid){alert('云端无存档，请先上传。');return;}
+    const remoteData=await readGist(gid);
+    if(!confirm('下载会覆盖本地进度，确定？'))return;
+    applySaveData(remoteData);
+    persistAll();
+    alert('✅ 下载成功！页面将刷新。');
+    closeSyncModal();
+    render();
+  }catch(e){alert('❌ 下载失败：'+e.message);}
+}
+
+function persistAll(){
+  LS.set('bankAnswered',state.bankAnswered);
+  LS.set('bankStats',state.bankStats);
+  LS.set('wrong',state.wrongList);
+  LS.set('examResults',state.examResults);
+  LS.set('wrongSettings',state.wrongSettings);
+}
 
 // Init
 render();
