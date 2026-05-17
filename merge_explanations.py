@@ -1,0 +1,75 @@
+# -*- coding: utf-8 -*-
+"""
+将解析合并回 HTML 文件
+读取 explanations.json，修改 HTML 中的数据结构，为每道题添加解析字段。
+"""
+import json
+import re
+
+with open("explanations.json", "r", encoding="utf-8") as f:
+    explanations = json.load(f)
+
+with open("人工智能训练师三级刷题系统_v1.html", "r", encoding="utf-8") as f:
+    content = f.read()
+
+# Extract the D=({...}) data
+start_marker = 'const D=('
+start = content.find(start_marker)
+if start == -1:
+    print("ERROR: Could not find data start")
+    exit(1)
+start += len(start_marker)
+
+# Find matching closing brace
+depth = 0
+end = start
+for i, c in enumerate(content[start:]):
+    if c == '{': depth += 1
+    elif c == '}': depth -= 1
+    if depth == 0:
+        end = start + i + 1
+        break
+
+raw_json = content[start:end]
+data = json.loads(raw_json)
+
+# Add explanations to each question type
+def add_explain_to_list(questions, qtype, prefix):
+    """为题目列表添加解析字段"""
+    modified = 0
+    for i, q in enumerate(questions):
+        key = f"{qtype}_{i}"
+        exp = explanations.get(key, "")
+        if exp:
+            if qtype == 'j':
+                # 判断题: [question, answer] -> [question, answer, explanation]
+                if len(q) == 2:
+                    q.append(exp)
+                    modified += 1
+            else:
+                # 选择题: [question, options, answer] -> [question, options, answer, explanation]
+                if len(q) == 3:
+                    q.append(exp)
+                    modified += 1
+    return modified
+
+m1 = add_explain_to_list(data.get('bj', []), 'j', 'bj')
+m2 = add_explain_to_list(data.get('bs', []), 's', 'bs')
+m3 = add_explain_to_list(data.get('bm', []), 'm', 'bm')
+
+print(f"Added explanations:")
+print(f"  判断题: {m1}")
+print(f"  单选题: {m2}")
+print(f"  多选题: {m3}")
+print(f"  总计: {m1 + m2 + m3}")
+
+# Reconstruct the JSON data string
+new_json = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
+
+# Replace in HTML
+new_content = content[:start] + new_json + content[end:]
+
+with open("人工智能训练师三级刷题系统_v1.html", "w", encoding="utf-8") as f:
+    f.write(new_content)
+
+print("HTML file updated successfully!")
