@@ -33,23 +33,29 @@ for i, c in enumerate(content[start:]):
 raw_json = content[start:end]
 data = json.loads(raw_json)
 
-# Add explanations to each question type
+# Add/update explanations to each question type
 def add_explain_to_list(questions, qtype, prefix):
-    """为题目列表添加解析字段"""
+    """为题目列表添加/更新解析字段"""
     modified = 0
     for i, q in enumerate(questions):
         key = f"{qtype}_{i}"
         exp = explanations.get(key, "")
         if exp:
             if qtype == 'j':
-                # 判断题: [question, answer] -> [question, answer, explanation]
+                # 判断题: [question, answer] or [question, answer, explanation]
                 if len(q) == 2:
                     q.append(exp)
                     modified += 1
+                elif len(q) >= 3:
+                    q[2] = exp  # update existing
+                    modified += 1
             else:
-                # 选择题: [question, options, answer] -> [question, options, answer, explanation]
+                # 选择题: [question, options, answer] or [question, options, answer, explanation]
                 if len(q) == 3:
                     q.append(exp)
+                    modified += 1
+                elif len(q) >= 4:
+                    q[3] = exp  # update existing
                     modified += 1
     return modified
 
