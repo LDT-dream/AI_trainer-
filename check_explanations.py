@@ -16,7 +16,8 @@ with open('explanations.json', 'r', encoding='utf-8') as f:
 with open('questions_extracted.json', 'r', encoding='utf-8') as f:
     qs = json.load(f)
 
-qmap = {q['idx']: q for q in qs}
+# 关键修复：用 type_idx 做 key，避免同 idx 不同题型互相覆盖
+qmap = {f"{q['type']}_{q['idx']}": q for q in qs}
 
 issues = []  # [(key, problem_type, detail)]
 
@@ -51,10 +52,10 @@ for key, exp in exps.items():
     parts = key.split('_')
     qtype = parts[0]
     idx = int(parts[1])
-    q = qmap.get(idx, {})
+    q = qmap.get(key, {})
     answer = q.get('answer', [])
 
-    if len(answer) < 2:
+    if not isinstance(answer, list) or len(answer) < 2:
         continue  # 不是多选题
 
     # 检查是否每个选项都被提到
@@ -112,7 +113,7 @@ topic_checks = {
 for key, exp in exps.items():
     parts = key.split('_')
     idx = int(parts[1])
-    q = qmap.get(idx, {})
+    q = qmap.get(key, {})
     question = q.get('question', '')
 
     for topic, expected_keywords in topic_checks.items():
@@ -128,7 +129,7 @@ for key, exp in exps.items():
     parts = key.split('_')
     qtype = parts[0]
     idx = int(parts[1])
-    q = qmap.get(idx, {})
+    q = qmap.get(key, {})
     answer = q.get('answer', '')
 
     if qtype == 'j':
@@ -175,7 +176,7 @@ kb_topics = {
 for key, exp in exps.items():
     parts = key.split('_')
     idx = int(parts[1])
-    q = qmap.get(idx, {})
+    q = qmap.get(key, {})
     question = q.get('question', '')
 
     for topic, kb_id in kb_topics.items():
@@ -199,7 +200,7 @@ for key, ptype, detail in issues:
 for ptype, items in sorted(by_type.items(), key=lambda x: -len(x[1])):
     print(f'【{ptype}】({len(items)}个)')
     for key, detail in items[:20]:  # 只显示前20个
-        q = qmap.get(int(key.split('_')[1]), {})
+        q = qmap.get(key, {})
         qtext = q.get('question', '')[:50]
         print(f'  {key}: {qtext}')
         print(f'    → {detail}')

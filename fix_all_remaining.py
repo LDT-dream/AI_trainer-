@@ -14,7 +14,8 @@ with open('questions_extracted.json', 'r', encoding='utf-8') as f:
 with open('explanations.json', 'r', encoding='utf-8') as f:
     exps = json.load(f)
 
-qmap = {q['idx']: q for q in qs}
+# 关键修复：用 type_idx 做 key，避免同 idx 不同题型互相覆盖
+qmap = {f"{q['type']}_{q['idx']}": q for q in qs}
 changes = 0
 
 # ═══════════════════════════════════════════════════════════════
@@ -236,7 +237,7 @@ for key in list(exps.keys()):
     parts = key.split('_')
     qtype = parts[0]
     idx = int(parts[1])
-    q = qmap.get(idx, {})
+    q = qmap.get(key, {})
     if not q:
         continue
 
@@ -248,8 +249,8 @@ for key in list(exps.keys()):
     # --- 修复1: 主题错配 ---
     exp = fix_topic_mismatch(key, exp, q)
 
-    # --- 修复2: 多选题逐选项分析 ---
-    if len(answer) >= 2 and q.get('options'):
+    # --- 修复2: 多选题逐选项分析（仅对 list 类型 answer 生效）---
+    if isinstance(answer, list) and len(answer) >= 2 and q.get('options'):
         exp = fix_multi_choice(key, exp, q)
 
     # --- 修复3: 添加知识库链接 ---
