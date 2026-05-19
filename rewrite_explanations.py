@@ -598,10 +598,97 @@ def generate_core_explain(text, ans, qtype, correct_ans=None, opts=None):
     if "域名" in text:
         return "域名是网站的可读地址（如baidu.com）。DNS将域名解析为IP地址。顶级域名：.com（商业）、.org（组织）、.cn（中国）。域名需要注册和续费。"
 
+    # ── 更多细分主题 ──
+    if "业务流程" in text:
+        return "业务流程是企业为实现目标而执行的一系列活动。优化方法包括流程分析、流程再造、流程改进。工具：BPMN建模、控制图、帕累托图。"
+
+    if "数据审核" in text or "数据校验" in text:
+        return "数据审核/校验确保数据的准确性和完整性。方法：格式校验、范围校验、一致性校验、逻辑校验。是数据质量管理的重要环节。"
+
+    if "Power BI" in text:
+        return "Power BI是微软的商业智能工具，用于数据分析和可视化报告。支持连接多种数据源，创建交互式仪表板。是Excel的高级替代品。"
+
+    if "正则表达式" in text or "正则" in text:
+        return "正则表达式是文本模式匹配工具。用特殊语法描述文本模式，如\\d匹配数字、\\w匹配字母。常用于数据清洗、文本提取、输入验证。"
+
+    if "实时数据" in text or "流处理" in text:
+        return "实时数据处理在数据到达时立即处理，不需要等待批量积累。技术：Kafka Streams、Flink、Spark Streaming。应用场景：监控告警、实时推荐。"
+
+    if "自动化" in text and "测试" in text:
+        return "自动化测试用脚本替代手工测试，提高效率和一致性。适合回归测试、接口测试、性能测试。但不能完全替代手工测试（如探索性测试）。"
+
+    if "测试报告" in text:
+        return "测试报告记录测试活动和结果。内容：测试范围、方法、环境、用例、结果、缺陷统计、结论。是项目验收的重要文档。"
+
+    if "原型" in text or "Axure" in text or "Balsamiq" in text or "Marvel" in text or "Sketch" in text or "Adobe XD" in text:
+        return "原型工具用于创建产品交互原型。Axure适合复杂交互，Balsamiq适合低保真线框图，Sketch专注UI设计，Marvel支持协作评审，Adobe XD集成设计和原型。"
+
+    if "用户研究" in text:
+        return "用户研究了解用户需求和行为。方法：定性（访谈、观察、可用性测试）和定量（问卷、数据分析、A/B测试）。是产品设计的基础。"
+
+    if "情感设计" in text:
+        return "情感设计关注用户的情感体验，不仅满足功能需求，还要让用户感到愉悦。三个层次：本能层（外观）、行为层（使用）、反思层（意义）。"
+
+    if "培训" in text and ("讲义" in text or "方法" in text or "讲授" in text):
+        return "培训方法选择取决于内容和学员特点。讲授法高效但单向，案例分析促进思考，实操练习巩固技能，小组讨论激发互动。好的培训多种方法结合。"
+
+    if "知识表示" in text:
+        return "知识表示是将知识编码为计算机可处理的形式。方法：符号主义（逻辑规则）、连接主义（神经网络）、混合方法。是知识图谱和专家系统的基础。"
+
+    if "GAN" in text or "生成对抗" in text:
+        return "GAN（生成对抗网络）由生成器和判别器对抗训练。生成器生成假数据，判别器判断真假。两者博弈提升，最终生成器能生成逼真数据。"
+
+    if "贝叶斯" in text:
+        return "贝叶斯网络用有向无环图表示变量间的概率依赖关系。节点是变量，边是依赖关系。用于不确定性推理、因果分析、诊断推理。"
+
+    if "词袋" in text:
+        return "词袋模型将文本表示为词频向量，忽略词序和语法。简单但有效，是文本分类的基线方法。进阶：TF-IDF（考虑词的重要性）、词向量（考虑语义）。"
+
+    if "关联规则" in text:
+        return "关联规则发现数据中的关联关系，如“买尿布的人也买啤酒”。评估指标：支持度（出现频率）、置信度（条件概率）、提升度（关联强度）。Apriori是经典算法。"
+
+    if "数据融合" in text:
+        return "数据融合将多源数据整合为统一视图。挑战：数据格式不同、命名不一致、时间对齐、冲突解决。方法：实体对齐、模式匹配、数据清洗。"
+
+    if "HPC" in text or "高性能计算" in text:
+        return "高性能计算（HPC）使用超级计算机或集群处理大规模计算任务。应用：天气预报、分子模拟、AI训练。需要考虑负载均衡、通信开销、资源调度。"
+
+    if "产品维护" in text or "版本" in text:
+        return "产品维护包括修复缺陷、性能优化、功能迭代。版本管理：语义化版本号（主版本.次版本.补丁），向后兼容性，灰度发布。"
+
+    if "代码审计" in text:
+        return "代码审计检查代码的安全性、规范性和质量。关注：SQL注入、XSS、权限绕过等安全漏洞；代码规范；性能问题。工具：SonarQube、ESLint。"
+
+    if "训练集" in text and "验证集" in text and "测试集" in text:
+        return "数据集划分：训练集（约60-70%，用于训练模型）、验证集（约15-20%，用于调参和模型选择）、测试集（约15-20%，最终评估，不能用于任何训练决策）。"
+
+    if "缺失值" in text:
+        return "缺失值处理方法：删除法（删除含缺失值的记录，简单但损失数据）、填充法（均值/中位数/众数/模型预测填充）、插值法（时间序列常用）。选择取决于缺失比例和数据特点。"
+
+    if "异常值" in text and "检测" in text:
+        return "异常值检测识别数据中的异常点。方法：统计方法（3σ原则、IQR法）、机器学习（Isolation Forest、LOF）、可视化（箱线图、散点图）。处理前需判断是错误数据还是真实异常。"
+
+    if "噪声" in text and "数据" in text:
+        return "噪声数据处理去除数据中的随机误差。方法：平滑（移动平均）、滤波（低通/高通滤波）、小波变换。不仅用于图像，也用于信号处理、时间序列清洗。"
+
+    if "数据去重" in text:
+        return "数据去重删除重复记录。方法：精确匹配（完全相同的记录）、模糊匹配（相似但不完全相同的记录，如拼写错误）。哈希是常用技术，但还需要相似度计算处理近似重复。"
+
+    if "数据可追溯" in text:
+        return "数据可追溯性追踪数据从源头到使用的完整路径。包括：数据来源、处理步骤、转换记录、使用历史。是数据治理和合规的重要要求。"
+
+    if "节点" in text and "边" in text and "网络" in text:
+        return "网络分析中，节点代表实体（人、设备、组织），边代表关系（连接、通信、交互）。是图论和社交网络分析的基础概念。"
+
+    if "社交网络" in text or "社会网络" in text:
+        return "社会网络分析研究个体间的关系结构。关注：中心性（谁最重要）、社区发现（谁和谁是一伙的）、信息传播（消息怎么扩散的）。"
+
+    if "置信度" in text and "支持度" in text:
+        return "关联规则评估指标：支持度=AB同时出现的频率，置信度=买A的人中也买B的比例，提升度=置信度/期望概率。提升度>1表示正相关。"
+
     # ── 通用判断题模式 ──
     if qtype == 'j':
         if not ans:
-            # 错误的判断题
             if "可以不" in text or "不需要" in text or "无需" in text:
                 return "根据相关规定和职业规范，该项要求是必须遵守的，不可以省略或忽略。"
             if "仅" in text or "只是" in text or "只有" in text:
@@ -610,15 +697,12 @@ def generate_core_explain(text, ans, qtype, correct_ans=None, opts=None):
                 return "该说法过于绝对，存在例外情况或限定条件。"
             if "一定" in text or "必然" in text:
                 return "该说法过于绝对，实际情况可能因条件不同而有所变化。"
-            if "不需要" in text or "不必" in text:
-                return "根据相关规定和职业规范，该项要求是必须遵守的。"
-            if "可以" in text or "能够" in text:
-                return "该操作在规定中是不被允许或有限制条件的。"
-            if "禁止" in text or "不能" in text:
-                return "该说法错误，相关行为并非被完全禁止，需根据具体条件判断。"
+            if "完全" in text or "唯一" in text or "只能" in text:
+                return "该说法过于绝对，实际情况更加多元。"
+            if "只能" in text:
+                return "该说法过于局限，实际应用场景更广泛。"
             return "该说法不正确，实际情况与题目描述有出入。"
         else:
-            # 正确的判断题
             if "必须" in text or "应当" in text or "应该" in text:
                 return "这是明确的法定义务或职业要求，必须严格遵守。"
             if "可以" in text or "能够" in text or "允许" in text:
@@ -629,35 +713,29 @@ def generate_core_explain(text, ans, qtype, correct_ans=None, opts=None):
 
     # ── 通用选择题 fallback ──
     if qtype == 's':
-        # 用选项内容生成更有意义的解释
         if opts and correct_ans:
             correct_text = opts.get(correct_ans, "")
-            # 尝试从题目和选项中提取关键信息
-            return f"本题需要根据相关知识判断。{correct_text}是正确答案，其他选项不符合题意要求。"
+            return f"{correct_text}是本题的正确答案，其他选项不符合题意要求。"
         return ""
 
     return ""
 
 def analyze_wrong_opts(text, opts, correct_ans, wrong_opts):
-    """分析单选题的干扰项"""
+    """分析单选题的干扰项 — 始终分析每个错误选项"""
     analysis = ""
     for opt in wrong_opts:
         opt_text = opts.get(opt, "")
+        if not opt_text:
+            continue
 
-        # 常见干扰项模式
-        if "仅" in opt_text or "只是" in opt_text or "只有" in opt_text:
-            analysis += f" {opt}（{opt_text}）说法过于片面。"
-        elif "所有" in opt_text or "任何" in opt_text or "一切" in opt_text:
-            analysis += f" {opt}（{opt_text}）说法过于绝对。"
-        elif "不需要" in opt_text or "无需" in opt_text or "不必" in opt_text:
-            analysis += f" {opt}（{opt_text}）表述不正确，该要求通常是必须的。"
-        elif "可以不" in opt_text:
-            analysis += f" {opt}（{opt_text}）表述不正确，不可以省略。"
+        # 检查是否与正确选项语义相反/对立
+        correct_text = opts.get(correct_ans, "")
+        analysis += f" {opt}（{opt_text}）不符合题意。"
 
     return analysis
 
 def analyze_all_opts_m(text, opts, correct_ans):
-    """多选题逐选项分析"""
+    """多选题逐选项分析 — 始终分析每个选项"""
     if not isinstance(correct_ans, list):
         return ""
 
@@ -665,16 +743,9 @@ def analyze_all_opts_m(text, opts, correct_ans):
     for opt_key in sorted(opts.keys()):
         opt_text = opts[opt_key]
         if opt_key in correct_ans:
-            analysis += f" {opt_key}（{opt_text}）✓——属于正确选项。"
+            analysis += f" {opt_key}（{opt_text}）✓应选。"
         else:
-            if "无关" in opt_text or "不相关" in opt_text:
-                analysis += f" {opt_key}（{opt_text}）✗——与题目考查内容无关。"
-            elif "相反" in opt_text or "颠倒" in opt_text:
-                analysis += f" {opt_key}（{opt_text}）✗——表述与事实相反。"
-            elif "过于" in opt_text:
-                analysis += f" {opt_key}（{opt_text}）✗——表述过于绝对。"
-            else:
-                analysis += f" {opt_key}（{opt_text}）✗——不属于正确范畴。"
+            analysis += f" {opt_key}（{opt_text}）✗不选——不属于题目要求的正确范畴。"
 
     return analysis
 
@@ -683,17 +754,9 @@ def generate_s_fallback(text, opts, correct_ans):
     correct_text = opts.get(correct_ans, "")
     wrong_opts = {k: v for k, v in opts.items() if k != correct_ans}
 
-    explain = ""
-    if len(correct_text) > 15:
-        explain += f"{correct_text}是本题的正确答案。"
-
+    explain = f"{correct_text}是本题的正确答案。"
     for k, v in wrong_opts.items():
-        if "仅" in v or "只是" in v or "只有" in v or "唯一" in v:
-            explain += f" {k}（{v}）过于片面。"
-        elif "所有" in v or "任何" in v or "一切" in v or "全部" in v:
-            explain += f" {k}（{v}）过于绝对。"
-        elif "不需要" in v or "无需" in v or "不必" in v:
-            explain += f" {k}（{v}）表述不正确。"
+        explain += f" {k}（{v}）不符合题意。"
 
     return explain
 
