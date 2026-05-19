@@ -249,7 +249,7 @@ function isBookmarked(key){return state.bookmarks.indexOf(key)>=0;}
 function goToBookmarked(key){
   const parts=key.split('_');
   const t=parts[0];const i=parseInt(parts[1]);
-  state.tab=0;state.bankType=t;state.bankIdx=i;render();
+  state.tab=0;state.bankType=t;state.bankPage=Math.floor(i/20);render();
 }
 function startBookmarkPractice(type){
   const keys=state.bookmarks.filter(k=>k.startsWith(type+'_'));
@@ -257,7 +257,7 @@ function startBookmarkPractice(type){
   // 跳转到题库并筛选收藏题目
   state.tab=0;state.bankType=type;
   const firstKey=keys[0];
-  state.bankIdx=parseInt(firstKey.split('_')[1]);
+  state.bankPage=Math.floor(parseInt(firstKey.split('_')[1])/20);
   render();
   showToast('已在题库定位到第1道收藏题，共'+keys.length+'道');
 }
@@ -318,6 +318,7 @@ function applySaveData(payload){
   LS.set('examResults',state.examResults);
   persistWrongList();
   persistWrongSettings();
+  persistBookmarks();
 }
 
 persistWrongList();
@@ -427,7 +428,6 @@ function render(){
     else if(state.tab===2)h+=renderWrong();else h+=renderKnowledgeBase();
   }
   app.innerHTML=h;
-  bindEvents();
 }
 
 function renderHeader(){
@@ -829,12 +829,12 @@ function renderWrongPractice(){
   state.wrongPracticeList=state.wrongPracticeList.filter(k=>state.wrongList.some(w=>w.key===k));
   if(state.wrongPracticeList.length===0){
     state.wrongMode=false;
-    render();return'';
+    return renderWrong();
   }
   const pList=state.wrongPracticeList;
   const realIdx=state.wrongIdx%pList.length;
   const w=state.wrongList.find(ww=>ww.key===pList[realIdx]);
-  if(!w){state.wrongMode=false;render();return'';}
+  if(!w){state.wrongMode=false;return renderWrong();}
   const idx=state.wrongIdx;
   const aKey=w.key;
   const answered=state.wrongAnswered[aKey]!==undefined;
@@ -1046,7 +1046,8 @@ window.examToggleMulti=function(idx,val){
   render();
 }
 window.examConfirmMulti=function(idx){
-  state.examAnswers[idx]=[...(window._examMultiTemp[idx]||[])].sort();
+  if(!window._examMultiTemp[idx])return; // 已确认过，不覆盖
+  state.examAnswers[idx]=[...window._examMultiTemp[idx]].sort();
   delete window._examMultiTemp[idx];
   render();
 }
@@ -1333,7 +1334,6 @@ window.clearWrong=function(){
   render();
 }
 
-function bindEvents(){}
 
 // Integrity check removed — we added explanations to all questions
 
@@ -1558,6 +1558,7 @@ function persistAll(){
   LS.set('wrong',state.wrongList);
   LS.set('examResults',state.examResults);
   LS.set('wrongSettings',state.wrongSettings);
+  LS.set('bookmarks',state.bookmarks);
 }
 
 // Init
