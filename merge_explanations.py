@@ -6,6 +6,45 @@
 import json
 import re
 
+
+def md_to_html(text: str) -> str:
+    """将简单的 Markdown 格式转为 HTML"""
+    if not text:
+        return text
+
+    # 转义 HTML 特殊字符（但保留已有的标签）
+    text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+    # 先处理加粗 **text**
+    text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
+
+    # 处理列表项 * text 或 - text
+    lines = text.split('\n')
+    result_lines = []
+    in_list = False
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith('* ') or stripped.startswith('- '):
+            if not in_list:
+                result_lines.append('<ul>')
+                in_list = True
+            item_text = stripped[2:]
+            result_lines.append(f'<li>{item_text}</li>')
+        else:
+            if in_list:
+                result_lines.append('</ul>')
+                in_list = False
+            if stripped:
+                result_lines.append(f'<p>{stripped}</p>')
+            else:
+                result_lines.append('')
+
+    if in_list:
+        result_lines.append('</ul>')
+
+    return '\n'.join(result_lines)
+
 with open("explanations.json", "r", encoding="utf-8") as f:
     explanations = json.load(f)
 
@@ -41,21 +80,23 @@ def add_explain_to_list(questions, qtype, prefix):
         key = f"{qtype}_{i}"
         exp = explanations.get(key, "")
         if exp:
+            # 将 Markdown 转为 HTML
+            exp_html = md_to_html(exp)
             if qtype == 'j':
                 # 判断题: [question, answer] or [question, answer, explanation]
                 if len(q) == 2:
-                    q.append(exp)
+                    q.append(exp_html)
                     modified += 1
                 elif len(q) >= 3:
-                    q[2] = exp  # update existing
+                    q[2] = exp_html  # update existing
                     modified += 1
             else:
                 # 选择题: [question, options, answer] or [question, options, answer, explanation]
                 if len(q) == 3:
-                    q.append(exp)
+                    q.append(exp_html)
                     modified += 1
                 elif len(q) >= 4:
-                    q[3] = exp  # update existing
+                    q[3] = exp_html  # update existing
                     modified += 1
     return modified
 
