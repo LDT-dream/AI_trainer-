@@ -96,12 +96,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hira
 .confirm-btn{margin-top:12px}
 .key-focus{box-shadow:0 0 0 3px rgba(79,70,229,.5)!important;border-color:var(--pri)!important;transform:scale(1.01)}
 .judge-btn.key-focus{background:#EEF2FF!important;color:var(--pri)!important}
-.kb-help-btn{position:fixed;bottom:80px;right:16px;width:36px;height:36px;border-radius:50%;background:var(--pri);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;cursor:pointer;z-index:90;box-shadow:0 2px 8px rgba(79,70,229,.3);border:none;opacity:.7;transition:.2s}
-.kb-help-btn:hover{opacity:1;transform:scale(1.1)}
-.kb-help-panel{position:fixed;bottom:124px;right:16px;background:#fff;border-radius:12px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:91;font-size:13px;line-height:2;min-width:220px;display:none}
-.kb-help-panel.show{display:block}
-.kb-help-panel h4{margin:0 0 8px;font-size:14px;color:var(--pri)}
-.kb-help-panel kbd{display:inline-block;padding:1px 6px;border-radius:4px;background:#F3F4F6;border:1px solid #D1D5DB;font-family:monospace;font-size:12px;min-width:22px;text-align:center}
+.kb-hint{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding:8px 10px;background:#F8FAFC;border-radius:8px;font-size:11px;color:var(--sub);align-items:center}
+.kb-hint kbd{display:inline-block;padding:1px 5px;border-radius:3px;background:#fff;border:1px solid #D1D5DB;font-family:monospace;font-size:11px;min-width:18px;text-align:center;box-shadow:0 1px 1px rgba(0,0,0,.05)}
+.kb-hint span{margin-right:4px}
 .score-display{text-align:center;padding:30px}
 .score-big{font-size:64px;font-weight:900;color:var(--pri)}
 .score-label{font-size:14px;color:var(--sub);margin-top:8px}
@@ -436,12 +433,6 @@ function render(){
     else if(state.tab===2)h+=renderWrong();else h+=renderKnowledgeBase();
   }
   app.innerHTML=h;
-  // 添加快捷键帮助面板
-  if(!document.getElementById('kbHelpPanel')){
-    const helpDiv=document.createElement('div');
-    helpDiv.innerHTML=renderHelpPanel();
-    document.body.appendChild(helpDiv);
-  }
 }
 
 function renderHeader(){
@@ -554,7 +545,20 @@ function renderQuestion(q,idx,typeKey,answers){
     if(q.type==='m')h+=`<div class="multi-hint">💡 多选题，选择所有正确答案后点击确认</div>`;
     h+=renderChoiceOpts(q,aKey,answered,userAns,q.type==='m');
   }
-  
+
+  // 键盘快捷键提示
+  if(!answered){
+    if(q.type==='j'){
+      h+=`<div class="kb-hint"><kbd>←</kbd> 正确 <kbd>→</kbd> 错误</div>`;
+    }else if(q.type==='s'){
+      h+=`<div class="kb-hint"><kbd>↑</kbd><kbd>↓</kbd> 移动 <kbd>Enter</kbd> 确认</div>`;
+    }else{
+      h+=`<div class="kb-hint"><kbd>↑</kbd><kbd>↓</kbd> 移动 <kbd>Space</kbd> 选中 <kbd>Enter</kbd> 确认</div>`;
+    }
+  }else{
+    h+=`<div class="kb-hint"><kbd>←</kbd> 上一题 <kbd>→</kbd> 下一题 <kbd>S</kbd> 收藏</div>`;
+  }
+
   if(answered){
     const isCorrect=checkAnswer(q,userAns);
     const correctText=q.type==='j'?(q.a?'√ 正确':'× 错误'):(Array.isArray(q.a)?q.a.join(', '):q.a);
@@ -722,6 +726,14 @@ function renderExamQuestion(q,idx){
       const cnt=tempSel?tempSel.length:0;
       h+=`<button class="btn btn-pri btn-block confirm-btn" onclick="examConfirmMulti(${idx})"${cnt<2?' disabled style="opacity:.5"':''}>确认选择 (已选${cnt}项)</button>`;
     }
+  }
+  // 键盘快捷键提示
+  if(q.type==='j'){
+    h+=`<div class="kb-hint"><kbd>←</kbd> 正确 <kbd>→</kbd> 错误</div>`;
+  }else if(q.type==='s'){
+    h+=`<div class="kb-hint"><kbd>↑</kbd><kbd>↓</kbd> 移动 <kbd>Enter</kbd> 确认</div>`;
+  }else{
+    h+=`<div class="kb-hint"><kbd>↑</kbd><kbd>↓</kbd> 移动 <kbd>Space</kbd> 选中 <kbd>Enter</kbd> 确认</div>`;
   }
   h+=`</div>`;
   return h;
@@ -893,7 +905,20 @@ function renderWrongPractice(){
       h+=`<button class="btn btn-pri btn-block confirm-btn" onclick="wrongConfirmMulti('${aKey}')"${cnt<2?' disabled style="opacity:.5"':''}>确认 (已选${cnt})</button>`;
     }
   }
-  
+
+  // 键盘快捷键提示
+  if(!answered){
+    if(w.type==='j'){
+      h+=`<div class="kb-hint"><kbd>←</kbd> 正确 <kbd>→</kbd> 错误</div>`;
+    }else if(w.type==='s'){
+      h+=`<div class="kb-hint"><kbd>↑</kbd><kbd>↓</kbd> 移动 <kbd>Enter</kbd> 确认</div>`;
+    }else{
+      h+=`<div class="kb-hint"><kbd>↑</kbd><kbd>↓</kbd> 移动 <kbd>Space</kbd> 选中 <kbd>Enter</kbd> 确认</div>`;
+    }
+  }else{
+    h+=`<div class="kb-hint"><kbd>←</kbd> 上一题 <kbd>→</kbd> 下一题</div>`;
+  }
+
   if(answered){
     const isCorrect=w.type==='j'?userAns===w.a:w.type==='m'?[...(userAns||[])].sort().join(',')===[...(w.a||[])].sort().join(','):userAns===w.a;
     const correctText=w.type==='j'?(w.a?'√ 正确':'× 错误'):(Array.isArray(w.a)?w.a.join(', '):w.a);
@@ -916,7 +941,7 @@ function renderWrongPractice(){
 }
 
 // Event handlers
-window.switchTab=function(t){state.tab=t;render();}
+window.switchTab=function(t){state.tab=t;lastAnsweredIdx=-1;render();}
 window.switchBankType=function(t){state.bankType=t;state.bankPage=0;render();}
 window.bankPage=function(p){state.bankPage=p;render();window.scrollTo(0,0);}
 
@@ -1577,22 +1602,35 @@ function persistAll(){
 
 // === 键盘快捷键 ===
 let keyCursor={};  // { 'j_0': 0, 's_5': 2 } 每题当前高亮的选项索引
-let helpVisible=false;
+let lastAnsweredIdx=-1;  // 最后答题的DOM序号，用于定位下一题
 
 function findActiveQuestion(){
   const cards=document.querySelectorAll('[data-key]');
-  // 找第一个未答题（没有.disabled的）
-  for(const card of cards){
+  // 先找lastAnsweredIdx之后的第一道未答题
+  for(let i=lastAnsweredIdx+1;i<cards.length;i++){
+    const card=cards[i];
     const aKey=card.dataset.key;
     const type=card.dataset.type;
     const opts=card.querySelectorAll('[data-opt]');
     const hasDisabled=card.querySelector('.judge-btn.disabled,.opt.disabled');
     if(!hasDisabled&&opts.length>0){
       const curIdx=keyCursor[aKey]!==undefined?keyCursor[aKey]:0;
-      return{aKey,type,answered:false,opts,curIdx};
+      return{aKey,type,answered:false,opts,curIdx,i};
     }
   }
-  // 都答完了，返回null（此时方向键用于翻页）
+  // 再从头找（可能翻页了）
+  for(let i=0;i<=lastAnsweredIdx&&i<cards.length;i++){
+    const card=cards[i];
+    const aKey=card.dataset.key;
+    const type=card.dataset.type;
+    const opts=card.querySelectorAll('[data-opt]');
+    const hasDisabled=card.querySelector('.judge-btn.disabled,.opt.disabled');
+    if(!hasDisabled&&opts.length>0){
+      const curIdx=keyCursor[aKey]!==undefined?keyCursor[aKey]:0;
+      return{aKey,type,answered:false,opts,curIdx,i};
+    }
+  }
+  // 都答完了
   return null;
 }
 
@@ -1610,14 +1648,11 @@ function applyKeyFocus(aKey,idx,opts){
 
 function navigateQuestion(dir){
   // dir: -1=prev, 1=next
+  lastAnsweredIdx=-1;  // 重置位置追踪
   if(state.tab===0){
-    // 题库模式
     const cards=document.querySelectorAll('[data-key]');
     const lastKey=cards[cards.length-1]?.dataset.key;
     if(dir===1&&lastKey){
-      // 检查最后一题是否已答
-      const lastType=lastKey.split('_')[0];
-      const lastIdx=parseInt(lastKey.split('_')[1]);
       const pageEnd=state.bankPage*20+20;
       const total=bank[state.bankType].length;
       if(state.bankAnswered[lastKey]!==undefined&&pageEnd<total){
@@ -1652,8 +1687,7 @@ function handleKeyDown(e){
 
   const key=e.key;
 
-  // ? — 帮助面板
-  if(key==='?'){e.preventDefault();toggleHelp();return;}
+  // ? — 无操作（提示已内嵌到题目中）
 
   // 找当前题目
   const active=findActiveQuestion();
@@ -1663,7 +1697,7 @@ function handleKeyDown(e){
     if(key==='ArrowLeft'){e.preventDefault();clearKeyFocus();navigateQuestion(-1);}
     return;
   }
-  const{aKey,type,answered,opts,curIdx}=active;
+  const{aKey,type,answered,opts,curIdx,i:cardIdx}=active;
 
   // === 未答题 ===
   const isExam=state.tab===1&&state.examActive;
@@ -1674,6 +1708,7 @@ function handleKeyDown(e){
     if(type==='j'){
       if(key==='ArrowLeft'){
         e.preventDefault();
+        lastAnsweredIdx=cardIdx;
         if(isExam)examAnswerJudge(idx,true);
         else if(isWrong)wrongAnswer(aKey,true,'j');
         else answerJudge(aKey,true);
@@ -1681,6 +1716,7 @@ function handleKeyDown(e){
       }
       if(key==='ArrowRight'){
         e.preventDefault();
+        lastAnsweredIdx=cardIdx;
         if(isExam)examAnswerJudge(idx,false);
         else if(isWrong)wrongAnswer(aKey,false,'j');
         else answerJudge(aKey,false);
@@ -1706,6 +1742,7 @@ function handleKeyDown(e){
         e.preventDefault();
         if(opts[curIdx]){
           const optKey=opts[curIdx].dataset.opt;
+          lastAnsweredIdx=cardIdx;
           if(isExam)examAnswerSingle(idx,optKey);
           else if(isWrong)wrongAnswer(aKey,optKey,'s');
           else answerSingle(aKey,optKey);
@@ -1745,6 +1782,7 @@ function handleKeyDown(e){
         else if(isWrong)tempSel=window._wrongMultiTemp&&window._wrongMultiTemp[aKey]||[];
         else tempSel=window._multiTemp&&window._multiTemp[aKey]||[];
         if(tempSel.length>=2){
+          lastAnsweredIdx=cardIdx;
           if(isExam)examConfirmMulti(idx);
           else if(isWrong)wrongConfirmMulti(aKey);
           else confirmMulti(aKey);
@@ -1784,27 +1822,6 @@ function handleKeyDown(e){
   }
 }
 
-// 帮助面板
-function toggleHelp(){
-  helpVisible=!helpVisible;
-  const panel=document.getElementById('kbHelpPanel');
-  if(panel)panel.classList.toggle('show',helpVisible);
-}
-
-function renderHelpPanel(){
-  return `<button class="kb-help-btn" onclick="toggleHelp()" title="快捷键帮助 (?)">?</button>
-  <div class="kb-help-panel${helpVisible?' show':''}" id="kbHelpPanel">
-    <h4>快捷键</h4>
-    <div><kbd>←</kbd> 判断题选"正确" / 已答后上一题</div>
-    <div><kbd>→</kbd> 判断题选"错误" / 已答后下一题</div>
-    <div><kbd>↑</kbd><kbd>↓</kbd> 选项间移动光标</div>
-    <div><kbd>Enter</kbd> 确认选择</div>
-    <div><kbd>Space</kbd> 多选题切换选中</div>
-    <div><kbd>S</kbd> 收藏/取消收藏</div>
-    <div><kbd>M</kbd> 考试模式标记题目</div>
-    <div><kbd>?</kbd> 显示/隐藏此面板</div>
-  </div>`;
-}
 
 document.addEventListener('keydown',handleKeyDown);
 
