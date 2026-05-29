@@ -430,7 +430,7 @@ function render(){
     h+=renderTabs();
     if(state.tab===0)h+=renderBank();
     else if(state.tab===1)h+=renderExamList();
-    else if(state.tab===2)h+=renderWrong();else h+=renderKnowledgeBase();
+    else if(state.tab===2)h+=renderWrong();else if(state.tab===3)h+=renderKnowledgeBase();else h+=renderApiReference();
   }
   app.innerHTML=h;
 }
@@ -452,7 +452,7 @@ function renderHeader(){
 }
 
 function renderTabs(){
-  const tabs=['📚 题库','📝 模拟考试','❌ 错题本','📖 知识库'];
+  const tabs=['📚 题库','📝 模拟考试','❌ 错题本','📖 知识库','📋 API速查'];
   const wrongCount=state.wrongList.length;
   const bmCount=state.bookmarks.length;
   return`<div class="tabs">${tabs.map((t,i)=>`<div class="tab${state.tab===i?' active':''}" onclick="switchTab(${i})">${t}${i===2&&wrongCount>0?'<span style="color:var(--red);font-size:11px;margin-left:4px">('+wrongCount+')</span>':''}${i===2&&bmCount>0?'<span style="color:#F59E0B;font-size:11px;margin-left:4px">★'+bmCount+'</span>':''}</div>`).join('')}</div>`;
@@ -1865,6 +1865,176 @@ function renderKnowledgeBase() {
   h += '</div>';
   return h;
 }
+
+
+// ===== API 速查数据 =====
+const API_DATA=[
+{key:'pandas-clean',label:'Pandas - 数据清洗',icon:'🧹',color:'#1890ff',items:[
+{name:'df.isnull()',desc:'检测缺失值，返回布尔 DataFrame',example:'df.isnull()',note:'也可用 df.isna()，功能相同'},
+{name:'df.dropna()',desc:'删除包含缺失值的行',example:'df.dropna()',note:'可传入 axis=1 删除列，how="all" 仅删全空行'},
+{name:'df.fillna(value)',desc:'用指定值填充缺失值',example:"df.fillna(value=1)\ndf.fillna(method='ffill')  # 向前填充\ndf.fillna(method='bfill')  # 向后填充",note:'ffill=用前一个非空值填充，bfill=用后一个非空值填充'},
+{name:'df.duplicated()',desc:'检测重复数据，返回布尔 Series',example:'df.duplicated()'},
+{name:'df.drop_duplicates()',desc:'删除重复数据',example:"df.drop_duplicates()          # 默认保留第一次出现\ndf.drop_duplicates(keep='last')  # 保留最后一次出现",note:'keep 参数：first/last/False（全部删）'},
+{name:'df.astype(type)',desc:'数据类型转换',example:"df['aa'] = df['aa'].astype(int)"},
+{name:'pd.to_datetime()',desc:'日期格式转换',example:"df['bb'] = pd.to_datetime(df['bb'])"}
+]},
+{key:'pandas-filter',label:'Pandas - 数据筛选',icon:'🔍',color:'#52c41a',items:[
+{name:'比较运算符筛选',desc:'使用 >, <, ==, != 等筛选数据',example:"df[df['Age'] > 30]"},
+{name:'逻辑运算符组合',desc:'使用 & (且)、| (或)、~ (非) 组合多个条件',example:"df[(df['Age'] > 30) & (df['City'] == 'London')]",note:'每个条件必须用括号括起来'},
+{name:'.isin() 筛选',desc:'筛选特定值列表中的记录',example:"df[df['City'].isin(['New York', 'Madrid'])]"}
+]},
+{key:'pandas-agg',label:'Pandas - 聚合与拼接',icon:'📊',color:'#722ed1',items:[
+{name:'df.groupby()',desc:'按列分组后聚合计算',example:"depart_salary = df.groupby('department')['salary'].mean()",note:'常用聚合：mean/sum/count/max/min'},
+{name:'pd.concat()',desc:'纵向拼接多个 DataFrame',example:'pd.concat([df1, df2])',note:'axis=0 纵向拼接（默认），axis=1 横向拼接'}
+]},
+{key:'pandas-other',label:'Pandas - 数据处理',icon:'⚙️',color:'#fa8c16',items:[
+{name:'pd.read_csv()',desc:'读取 CSV 文件',example:"df = pd.read_csv('data.csv')"},
+{name:'Min-Max 归一化',desc:'将数据缩放到 [0, 1] 区间',example:"df_normalized = (df - df.min()) / (df.max() - df.min())",note:'公式：(x - min) / (max - min)'},
+{name:'df.sample()',desc:'随机打乱数据',example:'df_shuffled = df.sample(frac=1).reset_index(drop=True)',note:'frac=1 表示全部打乱，reset_index 重置索引'},
+{name:'train_test_split()',desc:'划分训练集和测试集',example:'from sklearn.model_selection import train_test_split\ntrain_set, test_set = train_test_split(df, test_size=0.25, random_state=42)',note:'test_size=0.25 表示 25% 做测试集，random_state 固定随机种子'}
+]},
+{key:'seaborn',label:'Seaborn 可视化',icon:'📈',color:'#eb2f96',items:[
+{name:'sns.lmplot()',desc:'线型图（带回归线的散点图）',example:"sns.lmplot(x='aa', y='bb', data=data)"},
+{name:'sns.boxplot()',desc:'箱型图（展示数据分布和异常值）',example:"sns.boxplot(x='aa', y='bb', data=data)",note:'箱体=四分位距(IQR)，线=中位数，点=异常值'},
+{name:'sns.heatmap()',desc:'热力图（展示矩阵数据的颜色映射）',example:"sns.heatmap(data, cmap='Blues', annot=True)",note:'cmap 颜色映射，annot=True 显示数值'}
+]},
+{key:'opencv-read',label:'OpenCV - 图像读取与转换',icon:'🖼️',color:'#13c2c2',items:[
+{name:'cv2.imread()',desc:'读取图像文件',example:"image = cv2.imread('image.jpg')",note:'默认读取为 BGR 格式'},
+{name:'cv2.cvtColor() - 灰度',desc:'将 BGR 图像转换为灰度图像',example:'gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)'},
+{name:'cv2.cvtColor() - HSV',desc:'将 BGR 图像转换为 HSV 色彩空间',example:'hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)',note:'HSV = 色相(Hue)、饱和度(Saturation)、明度(Value)'}
+]},
+{key:'opencv-transform',label:'OpenCV - 图像变换',icon:'🔄',color:'#2f54eb',items:[
+{name:'图像裁剪',desc:'使用数组切片裁剪图像',example:'cropped_image = image[50:100, 100:300]',note:'格式：image[y1:y2, x1:x2]'},
+{name:'cv2.resize()',desc:'缩放图像',example:'resized_image = cv2.resize(image, (width, height))',note:'参数顺序是 (宽, 高)，不是 (高, 宽)'},
+{name:'图像旋转',desc:'获取旋转矩阵并应用仿射变换',example:'(h, w) = image.shape[:2]\ncenter = (w // 2, h // 2)\nM = cv2.getRotationMatrix2D(center, 45, 1.0)\nrotated_image = cv2.warpAffine(image, M, (h, w))',note:'参数：(中心点, 角度, 缩放比例)'},
+{name:'cv2.flip()',desc:'翻转图像',example:'flipped = cv2.flip(image, 0)  # 水平翻转\nflipped = cv2.flip(image, 1)  # 垂直翻转',note:'0=水平翻转，1=垂直翻转'},
+{name:'图像平移',desc:'使用仿射变换平移图像',example:'import numpy as np\nM = np.float32([[1, 0, tx], [0, 1, ty]])\ntranslated = cv2.warpAffine(image, M, (w, h))'}
+]},
+{key:'opencv-process',label:'OpenCV - 图像处理',icon:'✨',color:'#f5222d',items:[
+{name:'cv2.GaussianBlur()',desc:'高斯模糊（降噪）',example:'blurred = cv2.GaussianBlur(image, (5, 5), 0)',note:'核大小必须是奇数，0=自动计算标准差'},
+{name:'cv2.Sobel()',desc:'Sobel 梯度算子（检测边缘方向）',example:'gradient = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=5)',note:'dx=1,dy=0 检测水平边缘；dx=0,dy=1 检测垂直边缘'},
+{name:'cv2.Canny()',desc:'Canny 边缘检测',example:'edges = cv2.Canny(image, 100, 200)',note:'参数：(图像, 低阈值, 高阈值)'},
+{name:'cv2.erode()',desc:'腐蚀操作（缩小白色区域）',example:"kernel = np.ones((5, 5), np.uint8)\nerosion = cv2.erode(image, kernel, iterations=1)"},
+{name:'cv2.dilate()',desc:'膨胀操作（扩大白色区域）',example:"kernel = np.ones((5, 5), np.uint8)\ndilation = cv2.dilate(image, kernel, iterations=1)",note:'腐蚀和膨胀常配合使用做形态学操作'}
+]},
+{key:'opencv-color',label:'OpenCV - 色彩与直方图',icon:'🎨',color:'#faad14',items:[
+{name:'cv2.add() - 亮度',desc:'增加图像亮度',example:'bright_image = cv2.add(image, np.array([50]))'},
+{name:'饱和度调整',desc:'调整 HSV 中的饱和度通道',example:'s = np.clip(s + 30, 0, 255)',note:'np.clip 防止值超过 255'},
+{name:'cv2.calcHist()',desc:'计算图像直方图',example:'hist = cv2.calcHist([image], [0], None, [256], [0, 256])',note:'参数：[图像], [通道], [掩码], [BIN数], [范围]'},
+{name:'cv2.equalizeHist()',desc:'直方图均衡化（增强对比度）',example:'equ = cv2.equalizeHist(gray_image)',note:'只能用于灰度图像'}
+]},
+{key:'opencv-attr',label:'OpenCV/PIL - 图像属性',icon:'📐',color:'#a0d911',items:[
+{name:'image.shape',desc:'获取图像尺寸信息（OpenCV）',example:'height, width = image.shape[:2]\nchannel = image.shape[2]',note:'shape = (高, 宽, 通道数)'},
+{name:'image.size',desc:'获取图像宽度和高度（PIL）',example:'width, height = image.size',note:'PIL 的 size 返回 (宽, 高)，与 OpenCV 相反'},
+{name:'PIL 灰度转换',desc:'将 PIL 图像转换为灰度图像',example:"gray_image = image.convert('L')\ngray_array = np.array(gray_image)\naverage_gray = np.mean(gray_array)"},
+{name:'图像归一化',desc:'将像素值从 [0,255] 缩放到 [0,1]',example:'normalized_image = image / 255.0'},
+{name:'随机噪声',desc:'生成随机噪声',example:'noise = np.random.randint(0, 50, image.shape)\nnoisy_image = cv2.add(image, noise.astype(np.uint8))',note:'randint=整数随机，uniform=浮点随机'}
+]}
+];
+
+const PRACTICAL_ANSWERS=[
+{module:'OpenCV 图像基础',items:[
+{title:'读取图像并查看信息',q:'读取 photo.jpg，分别打印 shape、dtype 和通道数',a:'import cv2\n\nimg = cv2.imread("photo.jpg")\nprint(img.shape)\nprint(img.dtype)\nprint(img.shape[2])'},
+{title:'灰度转换与查看维度',q:'读取图像转为灰度图像，打印灰度图像的 shape',a:'import cv2\n\nimg = cv2.imread("photo.jpg")\ngray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\nprint(gray.shape)'},
+{title:'图像缩放',q:'将图像缩放到 (200, 150)，打印新尺寸的 shape',a:'import cv2\n\nimg = cv2.imread("photo.jpg")\nresized = cv2.resize(img, (200, 150))\nprint(resized.shape)'}
+]},
+{module:'图像预处理',items:[
+{title:'锐化处理',q:'用锐化核和 cv2.filter2D 处理图像',a:'import cv2\nimport numpy as np\n\nimg = cv2.imread("photo.jpg")\nkernel = np.array([[-1,-1,-1],[-1,9,-1],[-1,-1,-1]])\nresult = cv2.filter2D(img, -1, kernel)\nprint(result.shape)'},
+{title:'添加噪声',q:'用 np.random.uniform 生成噪声叠加到图像上',a:'import cv2\nimport numpy as np\n\nimg = cv2.imread("photo.jpg")\nnoise = np.random.uniform(-30, 30, img.shape).astype(np.float64)\nresult = np.clip(img.astype(np.float64) + noise, 0, 255).astype(np.uint8)\nprint(result.dtype)'},
+{title:'亮度调整',q:'用 cv2.convertScaleAbs 增加亮度(alpha=1.3,beta=40)',a:'import cv2\n\nimg = cv2.imread("photo.jpg")\nbright = cv2.convertScaleAbs(img, alpha=1.3, beta=40)\nprint(bright.shape)\nprint(bright.dtype)'}
+]},
+{module:'Matplotlib 图像显示',items:[
+{title:'图像显示准备',q:'读取图像转RGB，设置标题，关闭坐标轴',a:'import cv2\nimport matplotlib.pyplot as plt\n\nimg = cv2.imread("photo.jpg")\nrgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)\nplt.title("My Photo")\nplt.axis("off")\nprint("准备完成")'},
+{title:'归一化回顾',q:'将像素值除以255归一化，打印最大值',a:'import cv2\nimport numpy as np\n\nimg = cv2.imread("photo.jpg")\nnormalized = img.astype("float32") / 255.0\nprint(normalized.max())'}
+]},
+{module:'Pandas 基础操作',items:[
+{title:'读取CSV并查看前10行',q:'读取 sample.csv，打印 head(10)',a:'import pandas as pd\ndf = pd.read_csv("sample.csv")\nprint(df.head(10))'},
+{title:'选取特定列',q:'打印"姓名"和"年龄"两列',a:'import pandas as pd\ndf = pd.read_csv("sample.csv")\nprint(df[["姓名", "年龄"]])'},
+{title:'条件筛选',q:'筛选评分 >= 3 的所有行',a:'import pandas as pd\ndf = pd.read_csv("sample.csv")\nprint(df[df["评分"] >= 3])'}
+]},
+{module:'Pandas 数据清洗',items:[
+{title:'日期格式清洗',q:'将日期列统一为 YYYY-MM-DD 格式',a:'import pandas as pd\ndf = pd.read_csv("sample_dates.csv")\ndf["日期"] = df["日期"].str.replace("/", "-")\ndf["日期"] = df["日期"].str.replace(".", "-")\ndf["日期"] = pd.to_datetime(df["日期"]).dt.strftime("%Y-%m-%d")\nprint(df["日期"])'},
+{title:'apply 变换',q:'用 lambda 给成绩列加1分（上限5分）',a:'import pandas as pd\ndf = pd.read_csv("sample.csv")\ndf["加分后"] = df["成绩"].apply(lambda x: min(x + 1, 5))\nprint(df[["姓名", "成绩", "加分后"]])'}
+]},
+{module:'sklearn 模型训练',items:[
+{title:'数据集划分',q:'用 train_test_split 按 80/20 划分数据',a:'from sklearn.model_selection import train_test_split\nimport numpy as np\n\nX = np.random.randn(50, 2)\ny = np.random.randint(0, 2, 50)\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\nprint(len(X_train))\nprint(len(X_test))'},
+{title:'模型训练与预测',q:'训练 DecisionTreeClassifier，打印准确率',a:'from sklearn.model_selection import train_test_split\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.metrics import accuracy_score\nimport numpy as np\n\nnp.random.seed(42)\nX = np.random.randn(100, 3)\ny = (X[:, 0] > 0).astype(int)\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\nclf = DecisionTreeClassifier(random_state=42)\nclf.fit(X_train, y_train)\ny_pred = clf.predict(X_test)\nprint(accuracy_score(y_test, y_pred))'}
+]},
+{module:'AIML 聊天机器人',items:[
+{title:'简单问答机器人',q:'创建 SimpleKernel，学习3个问答对，实现 respond',a:'class SimpleKernel:\n    def __init__(self):\n        self.patterns = {}\n    def learn(self, pattern, response):\n        self.patterns[pattern.lower()] = response\n    def respond(self, input_text):\n        text = input_text.lower().strip()\n        if text in self.patterns:\n            return self.patterns[text]\n        return "我不太理解你的问题"\n\nbot = SimpleKernel()\nbot.learn("你好", "你好！有什么可以帮你的吗？")\nbot.learn("你叫什么", "我是一个AI助手")\nbot.learn("再见", "再见，祝你学习顺利！")\nprint(bot.respond("你好"))\nprint(bot.respond("你叫什么"))\nprint(bot.respond("再见"))\nprint(bot.respond("今天天气怎么样"))'}
+]}
+];
+
+let apiSearchText='';
+let apiOpenCats=[];
+
+function renderApiReference(){
+  const filtered=apiSearchText?API_DATA.map(cat=>({...cat,items:cat.items.filter(it=>it.name.toLowerCase().includes(apiSearchText.toLowerCase())||it.desc.includes(apiSearchText)||it.example.toLowerCase().includes(apiSearchText.toLowerCase()))})).filter(cat=>cat.items.length>0):API_DATA;
+  const total=API_DATA.reduce((s,c)=>s+c.items.length,0);
+  let h='<div style="padding:0 0 16px">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">';
+  h+='<div><span style="background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:12px;font-size:12px;margin-right:8px">'+API_DATA.length+' 个分类</span><span style="background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:12px;font-size:12px">'+total+' 个 API</span></div>';
+  h+='<input type="text" placeholder="搜索 API 名称或描述" value="'+apiSearchText+'" oninput="apiSearchText=this.value;render()" style="padding:6px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;width:250px;outline:none">';
+  h+='</div>';
+  filtered.forEach(function(cat){
+    const isOpen=apiOpenCats.includes(cat.key)||!!apiSearchText;
+    h+='<div style="margin-bottom:12px;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">';
+    h+='<div onclick="toggleApiCat(\''+cat.key+'\')" style="padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:'+(isOpen?'#f0f7ff':'#fafafa')+'">';
+    h+='<div><span style="margin-right:8px">'+cat.icon+'</span><strong style="font-size:14px">'+cat.label+'</strong><span style="background:'+cat.color+';color:white;padding:2px 8px;border-radius:10px;font-size:11px;margin-left:8px">'+cat.items.length+' 个</span></div>';
+    h+='<span style="font-size:12px;color:#9ca3af">'+(isOpen?'▲':'▼')+'</span>';
+    h+='</div>';
+    if(isOpen){
+      h+='<div style="padding:12px;display:grid;grid-template-columns:repeat(2,1fr);gap:12px">';
+      cat.items.forEach(function(item){
+        h+='<div style="background:white;border:1px solid #e5e7eb;border-radius:8px;padding:12px">';
+        h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+        h+='<code style="font-size:13px;color:#1e40af;font-weight:600">'+item.name+'</code>';
+        h+='<span onclick="copyApiCode(this)" data-code="'+item.example.replace(/"/g,'&quot;').replace(/\n/g,'\\n')+'" style="cursor:pointer;color:#9ca3af;font-size:12px" title="复制代码">📋</span>';
+        h+='</div>';
+        h+='<div style="font-size:12px;color:#6b7280;margin-bottom:8px">'+item.desc+'</div>';
+        h+='<pre style="background:#f6f8fa;border:1px solid #e8e8e8;border-radius:6px;padding:8px 10px;font-size:11px;line-height:1.5;overflow-x:auto;white-space:pre-wrap;margin:0">'+item.example.replace(/</g,'&lt;')+'</pre>';
+        if(item.note)h+='<div style="margin-top:6px"><span style="background:#fff7ed;color:#c2410c;padding:1px 6px;border-radius:4px;font-size:10px">备注</span><span style="font-size:11px;color:#9ca3af;margin-left:4px">'+item.note+'</span></div>';
+        h+='</div>';
+      });
+      h+='</div>';
+    }
+    h+='</div>';
+  });
+  h+='<div style="margin-top:24px"><h3 style="margin:0 0 12px;font-size:16px;color:#1e40af;border-bottom:2px solid #3B82F6;padding-bottom:6px">📝 实操考试题目答案（共 '+PRACTICAL_ANSWERS.reduce(function(s,m){return s+m.items.length},0)+' 题）</h3>';
+  PRACTICAL_ANSWERS.forEach(function(mod){
+    h+='<div style="margin-bottom:16px">';
+    h+='<h4 style="margin:0 0 8px;font-size:14px;color:#374151">'+mod.module+'（'+mod.items.length+' 题）</h4>';
+    mod.items.forEach(function(item,idx){
+      var id='pa_'+mod.module.replace(/\s/g,'')+'_'+idx;
+      h+='<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;margin-bottom:8px">';
+      h+='<div style="font-weight:600;font-size:13px;color:#1f2937;margin-bottom:4px">'+(idx+1)+'. '+item.title+'</div>';
+      h+='<div style="font-size:12px;color:#6b7280;margin-bottom:8px">'+item.q+'</div>';
+      h+='<div id="'+id+'" style="display:none"><pre style="background:#1e293b;color:#e2e8f0;border-radius:6px;padding:10px 12px;font-size:12px;line-height:1.6;overflow-x:auto;white-space:pre-wrap;margin:0">'+item.a.replace(/</g,'&lt;')+'</pre></div>';
+      h+='<div onclick="toggleAnswer(\''+id+'\')" style="cursor:pointer;font-size:12px;color:#3B82F6">▶ 查看答案</div>';
+      h+='</div>';
+    });
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='</div>';
+  return h;
+}
+window.toggleApiCat=function(key){
+  var i=apiOpenCats.indexOf(key);
+  if(i>=0)apiOpenCats.splice(i,1);else apiOpenCats.push(key);
+  render();
+};
+window.copyApiCode=function(el){
+  var code=el.getAttribute('data-code').replace(/\\n/g,'\n');
+  navigator.clipboard.writeText(code).then(function(){
+    var orig=el.textContent;el.textContent='✓';
+    setTimeout(function(){el.textContent=orig;},1000);
+  });
+};
+window.toggleAnswer=function(id){
+  var el=document.getElementById(id);
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
+};
 
 </script>
 <div style="text-align:center;padding:16px 12px 8px;font-size:11px;color:#9CA3AF;line-height:1.6">来源：github.com/xxiao1127 | 免费开源，答案仅供参考，禁止商用或倒卖，盗用必究</div>
