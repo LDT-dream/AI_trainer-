@@ -1,3 +1,18 @@
 .neverload/
 .claude/
 ai_2025/
+__pycache__/
+*.pyc
+
+# Generated extraction/intermediate text
+all_pdf_content.txt
+docx_content.txt
+docx_content_all.txt
+extracted_questions.txt
+pdf_content.txt
+pdf_content_all.txt
+知识点总结_给AI参考.txt
+题库_完整版.txt
+
+# Local generated backups
+*_backup_*.html
