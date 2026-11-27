@@ -73,3 +73,11 @@
 - 本资料全部开源免费，答案仅为个人理解，仅供学习交流参考。
 - 禁止任何形式的商用、倒卖或未经授权的转载，盗用必究。
 - 联系作者：shellyx060@gmail.com
+
+## 维护脚本
+
+根目录原有的题库维护/生成脚本已集中到 `scripts/` 目录统一维护，脚本本身内容未改动。
+
+调用方式保持不变：在仓库根目录执行 `python scripts/<脚本名>.py`（例如 `python scripts/knowledge_base.py`），脚本仍按仓库根目录的相对路径读写相邻 JSON/HTML 文件。
+
+网页、资料、题库 JSON 等文件的位置与打开方式均未改变。`generate_ai_explanations.py` 需要外部 AI 接口凭据，请勿随意运行。

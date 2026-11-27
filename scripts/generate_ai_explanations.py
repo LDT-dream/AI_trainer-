@@ -19,7 +19,7 @@ MIMO_API_KEY = os.environ.get("MIMO_API_KEY", "")
 MIMO_BASE_URL = os.environ.get("MIMO_BASE_URL", "https://token-plan-cn.xiaomimimo.com/v1")
 MODEL = "mimo-v2.5-pro"
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SCRIPT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 QUESTIONS_FILE = os.path.join(SCRIPT_DIR, "questions_extracted.json")
 EXPLANATIONS_FILE = os.path.join(SCRIPT_DIR, "explanations.json")
 PROGRESS_FILE = os.path.join(SCRIPT_DIR, "ai_explain_progress.json")
